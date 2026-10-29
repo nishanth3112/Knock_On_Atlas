@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SEC supplier-exposure graph and 8-K analysis with LangGraph agents"
 readme = "README.md"
 authors = [
-    { name = "Nishanth Manoharan", email = "<mknjnishanth@gmail.com>" }
+    { name = "Nishanth Manoharan", email = "mknjnishanth@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
