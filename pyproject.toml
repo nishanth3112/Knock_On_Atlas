@@ -1,13 +1,15 @@
 [project]
 name = "knock-on-atlas"
 version = "0.1.0"
-description = "Add your description here"
+description = "SEC supplier-exposure graph and 8-K analysis with LangGraph agents"
 readme = "README.md"
 authors = [
     { name = "Nishanth Manoharan", email = "<mknjnishanth@gmail.com>" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic-settings>=2.16.2",
+]
 
 [project.scripts]
 knock-on-atlas = "knock_on_atlas:main"
@@ -18,3 +20,11 @@ build-backend = "uv_build"
 
 [tool.uv]
 python-preference = "only-managed"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
