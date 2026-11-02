@@ -1,12 +1,16 @@
 import socket
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 
 from knock_on_atlas.config import Settings, get_settings
+from knock_on_atlas.edgar.client import SecClient
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+SEC_FIXTURES = Path(__file__).parent / "fixtures" / "sec"
 
 
 class NetworkBlockedError(RuntimeError):
@@ -57,3 +61,19 @@ def test_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def sec_client(tmp_path: Path) -> SecClient:
+    # Serves tests/fixtures/sec/<last URL segment>, recorded from real SEC responses.
+    def respond(request: httpx.Request) -> httpx.Response:
+        path = SEC_FIXTURES / request.url.path.rsplit("/", 1)[-1]
+        if not path.exists():
+            return httpx.Response(404)
+        return httpx.Response(200, content=path.read_bytes())
+
+    return SecClient(
+        "Test User test@example.com",
+        tmp_path / "sec_cache",
+        transport=httpx.MockTransport(respond),
+    )
