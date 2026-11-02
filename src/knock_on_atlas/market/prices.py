@@ -18,7 +18,8 @@ class TwelveDataClient:
     ) -> None:
         self._http = httpx.Client(
             base_url="https://api.twelvedata.com",
-            params={"apikey": api_key},
+            # A header, not the apikey query param: httpx logs request URLs at INFO.
+            headers={"Authorization": f"apikey {api_key}"},
             transport=transport,
             timeout=30,
         )
@@ -34,12 +35,12 @@ class TwelveDataClient:
                 "start_date": start.isoformat(),
                 "end_date": end.isoformat(),
                 "outputsize": 5000,
-                "order": "asc",
             },
         )
-        body = response.json()
-        # Messages are built here, not by raise_for_status, whose text includes the
-        # URL and therefore the API key.
+        is_json = response.headers.get("content-type", "").startswith(
+            "application/json"
+        )
+        body = response.json() if is_json else {}
         if response.is_error or body.get("status") != "ok":
             raise TwelveDataError(
                 f"{symbol}: HTTP {response.status_code} {body.get('message', '')}"
