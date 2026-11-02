@@ -9,6 +9,7 @@ from knock_on_atlas.market.prices import TwelveDataClient, TwelveDataError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "twelvedata"
 KEY = "td_test_key"
+JSON = {"content-type": "application/json; charset=utf-8"}
 
 
 def make_client() -> tuple[TwelveDataClient, list[httpx.Request]]:
@@ -18,8 +19,11 @@ def make_client() -> tuple[TwelveDataClient, list[httpx.Request]]:
         seen.append(request)
         if request.url.params["symbol"] == "SPY":
             body = (FIXTURES / "time_series_SPY.json").read_bytes()
-            return httpx.Response(200, content=body)
-        return httpx.Response(404, content=(FIXTURES / "error_404.json").read_bytes())
+            return httpx.Response(200, content=body, headers=JSON)
+        if request.url.params["symbol"] == "PROXY":
+            return httpx.Response(502, html="<html>Bad Gateway</html>")
+        body = (FIXTURES / "error_404.json").read_bytes()
+        return httpx.Response(404, content=body, headers=JSON)
 
     return TwelveDataClient(KEY, transport=httpx.MockTransport(respond)), seen
 
@@ -40,8 +44,10 @@ def test_daily_closes_oldest_first() -> None:
         (date(2026, 10, 29), 100.25),
         (date(2026, 10, 30), 101.5),
     ]
+    # httpx logs request URLs at INFO, so the key must travel in a header.
+    assert "apikey" not in str(seen[0].url)
+    assert seen[0].headers["Authorization"] == f"apikey {KEY}"
     params = seen[0].url.params
-    assert params["apikey"] == KEY
     assert params["interval"] == "1day"
     assert params["start_date"] == "2026-10-28"
     assert params["end_date"] == "2026-10-30"
@@ -52,6 +58,12 @@ def test_error_raises_without_leaking_key() -> None:
     with pytest.raises(TwelveDataError, match="ZZZZ") as err:
         client.daily_closes("ZZZZ", date(2026, 10, 28), date(2026, 10, 30))
     assert KEY not in str(err.value)
+
+
+def test_non_json_error_raises_twelve_data_error() -> None:
+    client, _ = make_client()
+    with pytest.raises(TwelveDataError, match="PROXY: HTTP 502"):
+        client.daily_closes("PROXY", date(2026, 10, 28), date(2026, 10, 30))
 
 
 def test_requests_are_spaced_for_basic_plan(sleeps: list[float]) -> None:
