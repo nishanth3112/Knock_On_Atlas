@@ -34,6 +34,8 @@ NUM = [
     "adsh\ttag\tversion\tddate\tqtrs\tuom\tdimh\tiprx\tvalue\tfootnote\tfootlen\tdimn\tcoreg\tdurp\tdatp\tdcml",
     # kept: named customer, revenue benchmark
     "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0xa\t0\t0.3100\t\t0\t3\t\t0\t0\t4",
+    # dropped as a repeat: same fact reported again (only iprx and footnote differ)
+    "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0xa\t1\t0.3100\tfootnote2\t9\t3\t\t0\t0\t4",
     # kept: placeholder customer, the other revenue benchmark, no label in tag.tsv
     "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0xe\t0\t0.1200\t\t0\t3\t\t0\t0\t4",
     # dropped: geographic concentration
