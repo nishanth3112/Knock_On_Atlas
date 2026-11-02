@@ -23,6 +23,8 @@ from knock_on_atlas.jev.questions import (
     choose_entity,
     decide_entity,
     entity_questions,
+    relationship_flag,
+    relationship_state,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "jev"
@@ -148,3 +150,24 @@ def test_record_call_keeps_tokens_and_payload(db: psycopg.Connection) -> None:
         " FROM jev_calls"
     ).fetchone()
     assert row == ("j3", "jev-1.14.0", 10, LABEL)
+
+
+@pytest.mark.parametrize(
+    ("noul", "flag"), [(0.8, None), (0.5, "unclear"), (0.1, "not_a_customer")]
+)
+def test_relationship_flag_bands(noul: float, flag: str | None) -> None:
+    body = {
+        "model": "jev-1.14.0",
+        "answers": {"rel_customer_buys": {"type": "noul", "noul": noul}},
+        "usage": {"input_tokens": 400, "output_tokens": 1},
+    }
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=body))
+    jev = JevClient(JevRoute.TYPESAFE, "test-key", transport=transport)
+    state = relationship_state("B&G Foods, Inc.", "Food", "Walmart Inc.", "WalMart")
+    assert relationship_flag(jev, state)[0] == flag
+
+
+def test_relationship_unchecked_when_jev_is_off() -> None:
+    state = relationship_state("B&G Foods, Inc.", None, "Walmart Inc.", "WalMart")
+    assert state["supplier_industry"] == "unknown"
+    assert relationship_flag(None, state) == ("unchecked", None)

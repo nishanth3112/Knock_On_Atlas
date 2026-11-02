@@ -41,3 +41,33 @@ def recent_8ks(client: SecClient, cik: int | str) -> list[Filing8K]:
         for i, form in enumerate(recent["form"])
         if form == "8-K"
     ]
+
+
+@dataclass(frozen=True)
+class CompanyProfile:
+    cik: str
+    name: str
+    sic: str | None
+    sic_description: str | None
+    tickers: tuple[str, ...]
+    ten_k_filed: tuple[date, ...]  # ascending; amendments excluded
+
+
+def company_profile(client: SecClient, cik: int | str) -> CompanyProfile:
+    padded = pad_cik(cik)
+    data = client.get_json(f"https://data.sec.gov/submissions/CIK{padded}.json")
+    recent = data["filings"]["recent"]
+    return CompanyProfile(
+        cik=padded,
+        name=data["name"],
+        sic=data["sic"] or None,
+        sic_description=data["sicDescription"] or None,
+        tickers=tuple(data["tickers"]),
+        ten_k_filed=tuple(
+            sorted(
+                date.fromisoformat(recent["filingDate"][i])
+                for i, form in enumerate(recent["form"])
+                if form == "10-K"
+            )
+        ),
+    )

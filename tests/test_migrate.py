@@ -1,10 +1,12 @@
 import psycopg
 
-from knock_on_atlas.db.migrate import migrate
+from knock_on_atlas.db.migrate import MIGRATIONS, migrate
 
 
 def test_migrate_applies_each_file_once(db: psycopg.Connection) -> None:
-    assert migrate(db) == ["001_exposure_graph.sql", "002_jev_calls.sql"]
+    files = sorted(p.name for p in MIGRATIONS.glob("*.sql"))
+    assert files[0] == "001_exposure_graph.sql"
+    assert migrate(db) == files
     assert migrate(db) == []
     tables = {
         row[0]
