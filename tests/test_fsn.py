@@ -44,6 +44,8 @@ NUM = [
     "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0xc\t0\t0.2000\t\t0\t3\t\t0\t0\t4",
     # dropped: customer revenue without a named customer axis
     "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0xd\t0\t0.5000\t\t0\t2\t\t0\t0\t4",
+    # kept but flagged: share of one business segment's revenue, not the company's
+    "0000000001-26-000001\tConcentrationRiskPercentage1\tus-gaap/2025\t20251231\t4\tpure\t0x10\t0\t0.4200\t\t0\t4\t\t0\t0\t4",
     # dropped: another tag on the same dimensions
     "0000000001-26-000001\tRevenues\tus-gaap/2025\t20251231\t4\tUSD\t0xa\t0\t1000\t\t0\t3\t\t0\t0\t-3",
 ]
@@ -58,6 +60,8 @@ DIM = [
     "ConcentrationRiskByType=CustomerConcentrationRisk;\t0",
     "0xe\tConcentrationRiskByBenchmark=RevenueFromContractWithCustomer;"
     "ConcentrationRiskByType=CustomerConcentrationRisk;MajorCustomers=CustomerA;\t0",
+    "0x10\tBusinessSegments=Retail;ConcentrationRiskByBenchmark=SalesRevenueNet;"
+    "ConcentrationRiskByType=CustomerConcentrationRisk;MajorCustomers=WalMart;\t0",
     # Real dim.tsv rows quote segments that contain a tab.
     '0xf\t"InvestmentIdentifier=Unfunded equity\tsecurities;"\t0',
 ]
@@ -82,12 +86,18 @@ def write_zip(path: Path) -> Path:
 def test_keeps_named_customer_revenue_facts(tmp_path: Path) -> None:
     facts = concentration_facts(write_zip(tmp_path / "2026_03_notes.zip"))
     assert facts.sort("revenue_share", descending=True).select(
-        "cik", "filer_name", "customer_member", "member_label", "revenue_share"
+        "cik",
+        "filer_name",
+        "customer_member",
+        "member_label",
+        "revenue_share",
+        "total_share",
     ).rows() == [
-        ("0001278027", "B&G FOODS, INC.", "WalMart", "Walmart Inc.", 0.31),
-        ("0001278027", "B&G FOODS, INC.", "CustomerA", "CustomerA", 0.12),
+        ("0001278027", "B&G FOODS, INC.", "WalMart", "Walmart Inc.", 0.42, False),
+        ("0001278027", "B&G FOODS, INC.", "WalMart", "Walmart Inc.", 0.31, True),
+        ("0001278027", "B&G FOODS, INC.", "CustomerA", "CustomerA", 0.12, True),
     ]
-    row = facts.filter(pl.col("customer_member") == "WalMart").row(0, named=True)
+    row = facts.filter(pl.col("revenue_share") == 0.31).row(0, named=True)
     assert row["benchmark"] == "SalesRevenueNet"
     assert row["form"] == "10-K"
     assert row["ddate"] == "20251231"
@@ -115,5 +125,5 @@ def test_load_month_writes_parquet_and_deletes_zip(
     raw, processed = tmp_path / "raw", tmp_path / "processed"
     out = load_month(zip_client, "2026_03", raw_dir=raw, out_dir=processed)
     assert out == processed / "concentration_2026_03.parquet"
-    assert pl.read_parquet(out).height == 2
+    assert pl.read_parquet(out).height == 3
     assert list(raw.iterdir()) == []
