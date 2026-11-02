@@ -1,0 +1,17 @@
+{
+ "meta": {
+  "symbol": "SPY",
+  "interval": "1day",
+  "currency": "USD",
+  "exchange_timezone": "America/New_York",
+  "exchange": "NYSE",
+  "mic_code": "ARCX",
+  "type": "ETF"
+ },
+ "values": [
+  {"datetime": "2026-10-30", "open": "101.00000", "high": "102.00000", "low": "100.00000", "close": "101.50000", "volume": "1000"},
+  {"datetime": "2026-10-29", "open": "100.00000", "high": "101.00000", "low": "99.00000", "close": "100.25000", "volume": "1000"},
+  {"datetime": "2026-10-28", "open": "99.00000", "high": "100.00000", "low": "98.00000", "close": "99.75000", "volume": "1000"}
+ ],
+ "status": "ok"
+}
