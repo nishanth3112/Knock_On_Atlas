@@ -11,6 +11,21 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      # Same image and credentials as docker-compose, so tests use the default DATABASE_URL.
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17
+        env:
+          POSTGRES_USER: koa
+          POSTGRES_PASSWORD: koa
+          POSTGRES_DB: koa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U koa -d koa"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
