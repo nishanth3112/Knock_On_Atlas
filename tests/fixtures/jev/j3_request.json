@@ -1,0 +1,168 @@
+{
+  "model": "<route model>",
+  "state": {
+    "supplier": "INNOVATIVE FOOD HOLDINGS INC",
+    "customer_label": "Sams Club Member",
+    "candidates": {
+      "Walmart Inc.": [
+        "Wal Mart",
+        "Wal Mart Stores Inc",
+        "Wal-Mart",
+        "Wal-Mart Stores, Inc.",
+        "Walmart",
+        "Walmart Inc. and Subsidiaries",
+        "Walmart Sams Club",
+        "Walmart Stores, Inc.",
+        "Walmart, Inc."
+      ],
+      "Comcast Corporation": [
+        "Comcast",
+        "Comcast Communications"
+      ],
+      "Cencora, Inc.": [
+        "Affiliates Of Cencora, Inc",
+        "AmeriSource-Bergen Corp",
+        "AmeriSourceBergen Corporation",
+        "AmerisourceBergen Corporation",
+        "Cencora",
+        "Cencora Inc.,"
+      ],
+      "Costco Wholesale Corporation": [
+        "Costco"
+      ],
+      "Northrop Grumman Corporation": [
+        "Northrop",
+        "Northrop Grumman",
+        "Northrop Grumman Space Systems"
+      ],
+      "General Motors Company": [
+        "General Motors"
+      ],
+      "Amazon.com, Inc.": [
+        "Amazon",
+        "Amazon.com Inc."
+      ],
+      "McKesson Corporation": [
+        "Affiliates of McKesson Corporation",
+        "Mc Kesson Corporation",
+        "McKesson",
+        "McKesson Corp",
+        "McKesson Plasma & Biologics and McKesson Specialty Care Distribution LLC",
+        "McKesson, Inc.",
+        "Mckesson Corporation"
+      ],
+      "Verizon Communications Inc.": [
+        "Verizon Communications Inc",
+        "Verizon Wireless"
+      ],
+      "Humana Inc.": [
+        "Humana",
+        "Humana Insurance Company"
+      ],
+      "CVS Health Corporation": [
+        "Aetna"
+      ],
+      "Cardinal Health, Inc.": [
+        "Cardinal",
+        "Cardinal Health",
+        "Cardinal Health 105, LLC (Cardinal Health)",
+        "Cardinal Health Inc"
+      ],
+      "The Boeing Company": [
+        "Boeing",
+        "Boeing Company And Subcontractors"
+      ],
+      "RTX Corporation": [
+        "RTX",
+        "Raytheon Company",
+        "Raytheon Technologies",
+        "Raytheon Technologies Corporation"
+      ],
+      "PACCAR Inc": [
+        "PACCAR",
+        "PACCAR Inc."
+      ],
+      "Ford Motor Company": [
+        "Ford",
+        "Ford Account",
+        "Ford And Affiliates"
+      ],
+      "Lockheed Martin Corporation": [
+        "Lockheed",
+        "Lockheed Martin"
+      ],
+      "Target Corporation": [
+        "Target"
+      ],
+      "The Home Depot, Inc.": [
+        "Home Depot",
+        "The Home Depot"
+      ],
+      "Centene Corporation": [
+        "Centene"
+      ]
+    }
+  },
+  "questions": {
+    "j3_names_candidate": {
+      "type": "noul",
+      "instructions": "Does `customer_label` name one specific company in `candidates`?",
+      "criteria": {
+        "true": "The label names one candidate company, or a subsidiary, division or store brand that company owns",
+        "false": "The label names a company not in the list, several companies combined such as 'X and Y', everyone except a company such as 'other than X', or a kind of customer such as wholesale customers or health plans"
+      }
+    },
+    "j3_pick": {
+      "type": "choice",
+      "instructions": "Which company in `candidates` does `customer_label` refer to?",
+      "criteria": {
+        "Walmart Inc.": null,
+        "Comcast Corporation": null,
+        "Cencora, Inc.": null,
+        "Costco Wholesale Corporation": null,
+        "Northrop Grumman Corporation": null,
+        "General Motors Company": null,
+        "Amazon.com, Inc.": null,
+        "McKesson Corporation": null,
+        "Verizon Communications Inc.": null,
+        "Humana Inc.": null,
+        "CVS Health Corporation": null,
+        "Cardinal Health, Inc.": null,
+        "The Boeing Company": null,
+        "RTX Corporation": null,
+        "PACCAR Inc": null,
+        "Ford Motor Company": null,
+        "Lockheed Martin Corporation": null,
+        "Target Corporation": null,
+        "The Home Depot, Inc.": null,
+        "Centene Corporation": null
+      }
+    },
+    "j3_pick_reversed": {
+      "type": "choice",
+      "instructions": "Which company in `candidates` does `customer_label` refer to?",
+      "criteria": {
+        "Centene Corporation": null,
+        "The Home Depot, Inc.": null,
+        "Target Corporation": null,
+        "Lockheed Martin Corporation": null,
+        "Ford Motor Company": null,
+        "PACCAR Inc": null,
+        "RTX Corporation": null,
+        "The Boeing Company": null,
+        "Cardinal Health, Inc.": null,
+        "CVS Health Corporation": null,
+        "Humana Inc.": null,
+        "Verizon Communications Inc.": null,
+        "McKesson Corporation": null,
+        "Amazon.com, Inc.": null,
+        "General Motors Company": null,
+        "Northrop Grumman Corporation": null,
+        "Costco Wholesale Corporation": null,
+        "Cencora, Inc.": null,
+        "Comcast Corporation": null,
+        "Walmart Inc.": null
+      }
+    }
+  }
+}

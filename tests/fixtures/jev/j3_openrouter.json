@@ -1,0 +1,70 @@
+{
+  "model": "typesafe/jev-1.14-20261014",
+  "answers": {
+    "j3_names_candidate": {
+      "type": "noul",
+      "noul": 0.89
+    },
+    "j3_pick": {
+      "type": "choice",
+      "choice": "Walmart Inc.",
+      "probabilities": {
+        "Walmart Inc.": 0.98,
+        "Comcast Corporation": 0,
+        "Cencora, Inc.": 0,
+        "Costco Wholesale Corporation": 0.02,
+        "Northrop Grumman Corporation": 0,
+        "General Motors Company": 0,
+        "Amazon.com, Inc.": 0,
+        "McKesson Corporation": 0,
+        "Verizon Communications Inc.": 0,
+        "Humana Inc.": 0,
+        "CVS Health Corporation": 0,
+        "Cardinal Health, Inc.": 0,
+        "The Boeing Company": 0,
+        "RTX Corporation": 0,
+        "PACCAR Inc": 0,
+        "Ford Motor Company": 0,
+        "Lockheed Martin Corporation": 0,
+        "Target Corporation": 0,
+        "The Home Depot, Inc.": 0,
+        "Centene Corporation": 0
+      },
+      "confidence": 0.98
+    },
+    "j3_pick_reversed": {
+      "type": "choice",
+      "choice": "Walmart Inc.",
+      "probabilities": {
+        "Centene Corporation": 0,
+        "The Home Depot, Inc.": 0,
+        "Target Corporation": 0,
+        "Lockheed Martin Corporation": 0,
+        "Ford Motor Company": 0,
+        "PACCAR Inc": 0,
+        "RTX Corporation": 0,
+        "The Boeing Company": 0,
+        "Cardinal Health, Inc.": 0,
+        "CVS Health Corporation": 0,
+        "Humana Inc.": 0,
+        "Verizon Communications Inc.": 0,
+        "McKesson Corporation": 0,
+        "Amazon.com, Inc.": 0,
+        "General Motors Company": 0,
+        "Northrop Grumman Corporation": 0,
+        "Costco Wholesale Corporation": 0.01,
+        "Cencora, Inc.": 0,
+        "Comcast Corporation": 0,
+        "Walmart Inc.": 0.99
+      },
+      "confidence": 0.99
+    }
+  },
+  "usage": {
+    "input_tokens": 1435,
+    "output_tokens": 473,
+    "cost": 6.027e-05
+  },
+  "id": "gen-dec-1793648034-ReFSS6IH7AhtETq68GAC",
+  "provider": "TypeSafe"
+}
