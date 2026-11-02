@@ -91,6 +91,9 @@ def concentration_facts(zip_path: Path) -> pl.DataFrame:
                 # FS&N stores the share as a fraction: 0.31 means 31% of revenue.
                 revenue_share=pl.col("value").cast(pl.Float64),
                 benchmark="benchmark",
+                # Any extra axis (segment, product line, legal entity, Range) makes the
+                # share one part of revenue or a bound, not the company's share.
+                total_share=pl.col("segments").str.count_matches("=") == 3,
                 segments="segments",
             )
             # A fact presented twice in one filing repeats in num.tsv with only iprx and
