@@ -21,6 +21,8 @@ build-backend = "uv_build"
 
 [tool.uv]
 python-preference = "only-managed"
+# ingest (polars) is for local scripts and CI; Lambda packaging excludes it.
+default-groups = ["dev", "ingest"]
 
 [dependency-groups]
 dev = [
@@ -28,6 +30,9 @@ dev = [
     "pre-commit>=4.7.0",
     "pytest>=9.2.0",
     "ruff>=0.17.3",
+]
+ingest = [
+    "polars>=2.1.0",
 ]
 
 [tool.ruff.lint]
