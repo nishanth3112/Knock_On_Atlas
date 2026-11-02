@@ -1,10 +1,13 @@
 import socket
+import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import httpx
+import psycopg
 import pytest
+from psycopg.conninfo import conninfo_to_dict
 
 from knock_on_atlas.config import Settings, get_settings
 from knock_on_atlas.edgar.client import SecClient
@@ -77,3 +80,19 @@ def sec_client(tmp_path: Path) -> SecClient:
         tmp_path / "sec_cache",
         transport=httpx.MockTransport(respond),
     )
+
+
+@pytest.fixture
+def db() -> Iterator[psycopg.Connection]:
+    """A connection to the local test Postgres, inside a schema dropped afterwards."""
+    url = get_settings().database_url.get_secret_value()
+    # libpq opens its own sockets, so the guard above never sees them.
+    _check_host(conninfo_to_dict(url).get("host"))
+    schema = f"test_{uuid.uuid4().hex}"
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute(f"CREATE SCHEMA {schema}")
+        conn.execute(f"SET search_path TO {schema}")
+        try:
+            yield conn
+        finally:
+            conn.execute(f"DROP SCHEMA {schema} CASCADE")
