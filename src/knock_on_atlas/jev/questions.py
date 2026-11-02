@@ -104,3 +104,51 @@ def choose_entity(
         return EntityDecision(cands[0].hub, 0.0, "fuzzy"), None
     call = jev.ask(entity_state(label, supplier, cands), entity_questions(cands))
     return decide_entity(cands, call), call
+
+
+# Relationship check, for edges the SIC rules leave open: is the revenue a purchase?
+REL_BUYS = "rel_customer_buys"
+REL_YES_MIN = 0.7
+REL_NO_MAX = 0.3
+
+
+def relationship_state(
+    supplier: str, industry: str | None, customer: str, label: str
+) -> dict[str, Any]:
+    return {
+        "supplier": supplier,
+        "supplier_industry": industry or "unknown",
+        "customer": customer,
+        "customer_as_disclosed": label,
+    }
+
+
+def relationship_questions() -> dict[str, Question]:
+    return {
+        REL_BUYS: NoulQuestion(
+            instructions="Does `customer` itself buy the goods or services that"
+            " `supplier` sells?",
+            criteria=NoulCriteria(
+                true="The customer pays the supplier for products or services it uses"
+                " or resells, such as a retailer stocking the supplier's goods or a"
+                " distributor buying its drugs",
+                false="The customer pays for services its own members receive, such"
+                " as an insurer reimbursing tests, rents property from the supplier,"
+                " or is a marketplace where shoppers buy the supplier's goods",
+            ),
+        )
+    }
+
+
+def relationship_flag(
+    jev: JevClient | None, state: dict[str, Any]
+) -> tuple[str | None, JevCall | None]:
+    if jev is None:
+        return "unchecked", None
+    call = jev.ask(state, relationship_questions())
+    answer = call.response.answers[REL_BUYS]
+    if not isinstance(answer, NoulAnswer):
+        raise JevError(f"relationship answer has unexpected type: {answer}")
+    if answer.noul >= REL_YES_MIN:
+        return None, call
+    return ("not_a_customer" if answer.noul <= REL_NO_MAX else "unclear"), call
