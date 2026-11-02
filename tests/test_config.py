@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -39,6 +41,25 @@ def test_sec_user_agent_required(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("SEC_USER_AGENT", raising=False)
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_blank_env_file_values_are_unset(tmp_path: Path) -> None:
+    # A copied .env.example has blank KEY= lines; they must mean "not set".
+    env_file = tmp_path / ".env"
+    env_file.write_text(f"SEC_USER_AGENT={UA}\nGROQ_API_KEY=\nTYPESAFE_API_KEY=\n")
+    s = Settings(_env_file=env_file)
+    assert s.groq_api_key is None
+    assert s.typesafe_api_key is None
+
+
+def test_blank_sec_user_agent_rejected(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("SEC_USER_AGENT", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("SEC_USER_AGENT=\n")
+    with pytest.raises(ValidationError, match="sec_user_agent"):
+        Settings(_env_file=env_file)
 
 
 def test_secrets_not_printed(monkeypatch: pytest.MonkeyPatch) -> None:
