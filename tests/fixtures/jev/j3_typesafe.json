@@ -1,0 +1,67 @@
+{
+  "model": "jev-1.14.0",
+  "answers": {
+    "j3_names_candidate": {
+      "type": "noul",
+      "noul": 0.92
+    },
+    "j3_pick": {
+      "type": "choice",
+      "choice": "Walmart Inc.",
+      "confidence": 0.97,
+      "probabilities": {
+        "Walmart Inc.": 0.97,
+        "Comcast Corporation": 0.0,
+        "Cencora, Inc.": 0.0,
+        "Costco Wholesale Corporation": 0.03,
+        "Northrop Grumman Corporation": 0.0,
+        "General Motors Company": 0.0,
+        "Amazon.com, Inc.": 0.0,
+        "McKesson Corporation": 0.0,
+        "Verizon Communications Inc.": 0.0,
+        "Humana Inc.": 0.0,
+        "CVS Health Corporation": 0.0,
+        "Cardinal Health, Inc.": 0.0,
+        "The Boeing Company": 0.0,
+        "RTX Corporation": 0.0,
+        "PACCAR Inc": 0.0,
+        "Ford Motor Company": 0.0,
+        "Lockheed Martin Corporation": 0.0,
+        "Target Corporation": 0.0,
+        "The Home Depot, Inc.": 0.0,
+        "Centene Corporation": 0.0
+      }
+    },
+    "j3_pick_reversed": {
+      "type": "choice",
+      "choice": "Walmart Inc.",
+      "confidence": 0.99,
+      "probabilities": {
+        "Centene Corporation": 0.0,
+        "The Home Depot, Inc.": 0.0,
+        "Target Corporation": 0.0,
+        "Lockheed Martin Corporation": 0.0,
+        "Ford Motor Company": 0.0,
+        "PACCAR Inc": 0.0,
+        "RTX Corporation": 0.0,
+        "The Boeing Company": 0.0,
+        "Cardinal Health, Inc.": 0.0,
+        "CVS Health Corporation": 0.0,
+        "Humana Inc.": 0.0,
+        "Verizon Communications Inc.": 0.0,
+        "McKesson Corporation": 0.0,
+        "Amazon.com, Inc.": 0.0,
+        "General Motors Company": 0.0,
+        "Northrop Grumman Corporation": 0.0,
+        "Costco Wholesale Corporation": 0.01,
+        "Cencora, Inc.": 0.0,
+        "Comcast Corporation": 0.0,
+        "Walmart Inc.": 0.99
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 1435,
+    "output_tokens": 473
+  }
+}
