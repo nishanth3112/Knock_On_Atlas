@@ -93,5 +93,8 @@ def concentration_facts(zip_path: Path) -> pl.DataFrame:
                 benchmark="benchmark",
                 segments="segments",
             )
+            # A fact presented twice in one filing repeats in num.tsv with only iprx and
+            # footnote differing; neither is kept, so the repeats are exact duplicates.
+            .unique(maintain_order=True)
             .collect()
         )
