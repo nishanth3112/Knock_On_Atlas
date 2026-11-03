@@ -97,7 +97,8 @@ def html_to_lines(document: bytes) -> list[str]:
     """Visible text, one non-empty line per block element, whitespace collapsed."""
     parser = _TextParser()
     parser.feed(document.decode("utf-8", errors="replace"))
-    text = "".join(parser.parts).replace("\xa0", " ")
+    # Filings pad table cells with no-break and zero-width spaces.
+    text = "".join(parser.parts).replace("\xa0", " ").replace("\u200b", "")
     return [line for raw in text.split("\n") if (line := " ".join(raw.split()))]
 
 
