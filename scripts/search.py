@@ -25,6 +25,9 @@ with psycopg.connect(url, autocommit=True) as conn:
     hits = hybrid_search(conn, BgeEmbedder(), args.query, args.cik, args.as_of, args.k)
 for n, hit in enumerate(hits, start=1):
     ranks = ", ".join(f"{name} #{rank}" for name, rank in hit.ranks.items())
-    print(f"[{n}] {hit.form} {hit.section} filed {hit.source_date} ({ranks})")
+    print(
+        f"[{n}] {hit.form} {hit.section} {hit.accession}"
+        f" filed {hit.source_date} ({ranks})"
+    )
     print(f"    {hit.url}")
     print(f"    {hit.content[:400].replace(chr(10), ' ')}")
