@@ -1,15 +1,17 @@
 from datetime import date
 
 import psycopg
+import pytest
 
 from knock_on_atlas.db.migrate import migrate
 from knock_on_atlas.edgar.filings import Filing
+from knock_on_atlas.retrieval import corpus
 from knock_on_atlas.retrieval.chunking import (
     OVERLAP_WORDS,
     WORDS_PER_CHUNK,
     chunk_section,
 )
-from knock_on_atlas.retrieval.corpus import store_section, upsert_document
+from knock_on_atlas.retrieval.corpus import store_section
 
 
 def words(prefix: str, n: int) -> str:
@@ -84,11 +86,22 @@ def test_store_section_chunks_once_and_rechunks_on_change(
     ]
 
 
-def test_store_section_chunks_a_document_left_without_chunks(
-    db: psycopg.Connection,
+def test_store_section_is_all_or_nothing(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     migrate(db)
     filing = section_filing()
-    # A run that stopped after recording the document but before its chunks.
-    upsert_document(db, filing, "item_1", "text")
-    assert store_section(db, filing, "item_1", "text") == 1
+    store_section(db, filing, "item_1", "old text")
+
+    def crash(text: str) -> list[str]:
+        raise RuntimeError("stopped mid-write")
+
+    # A run that stops after the new hash is known must not keep it.
+    monkeypatch.setattr(corpus, "chunk_section", crash)
+    with pytest.raises(RuntimeError):
+        store_section(db, filing, "item_1", "new text")
+    monkeypatch.undo()
+    assert store_section(db, filing, "item_1", "new text") == 1
+    assert db.execute("SELECT content FROM document_chunks").fetchall() == [
+        ("new text",)
+    ]
