@@ -1,14 +1,14 @@
 """Load FS&N concentration facts into Postgres and build supplier -> hub edges.
 
 Calls Jev for fuzzy labels and relationship checks unless JEV_ROUTE=off, then
-writes counts to evals/edge_load/<date>.json.
+writes counts to evals/edge_load/<UTC timestamp>.json.
 
 Usage: uv run python scripts/build_edges.py
 """
 
 import json
 from collections import Counter
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,13 @@ from knock_on_atlas.graph_store.edges import (
     sic_flag,
     upsert_companies,
 )
-from knock_on_atlas.graph_store.resolve import MatchKind, load_hubs, resolve
+from knock_on_atlas.graph_store.resolve import (
+    Hub,
+    MatchKind,
+    Resolution,
+    load_hubs,
+    resolve,
+)
 from knock_on_atlas.jev.client import JevCall, jev_from_settings, record_call
 from knock_on_atlas.jev.questions import (
     EntityDecision,
@@ -52,7 +58,35 @@ rows = fact_rows(
     pl.concat(pl.read_parquet(p) for p in sorted(FSN_DIR.glob("*.parquet")))
 )
 picked = candidates(rows)
-resolved = {label: resolve(label, hubs) for label in picked["member_label"].unique()}
+labels = picked["member_label"].unique().to_list()
+MATCHED = (MatchKind.ALIAS_EXACT, MatchKind.FUZZY)
+
+
+def matching(resolutions: dict[str, Resolution]) -> pl.DataFrame:
+    return picked.filter(
+        pl.col("member_label").is_in(
+            [label for label, r in resolutions.items() if r.kind in MATCHED]
+        )
+    )
+
+
+# Suppliers of a hub are targets too, so their own suppliers make second hops.
+hub_matched = matching({label: resolve(label, hubs) for label in labels})
+profiles = {
+    cik: company_profile(sec, cik)
+    for cik in sorted(set(hub_matched["cik"]) | {hub.cik for hub in hubs})
+}
+hub_ciks = {hub.cik for hub in hubs}
+supplier_targets = [
+    Hub(cik, profile.name, ())
+    for cik, profile in profiles.items()
+    if cik not in hub_ciks
+]
+targets = hubs + supplier_targets
+resolved = {label: resolve(label, targets) for label in labels}
+matchable = matching(resolved)
+for cik in sorted(set(matchable["cik"]) - set(profiles)):
+    profiles[cik] = company_profile(sec, cik)
 tokens = 0
 
 with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as conn:
@@ -64,18 +98,6 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
             tokens += call.response.usage.input_tokens
 
     new_facts = insert_facts(conn, rows)
-    matchable = picked.filter(
-        pl.col("member_label").map_elements(
-            lambda label: (
-                resolved[label].kind in (MatchKind.ALIAS_EXACT, MatchKind.FUZZY)
-            ),
-            return_dtype=pl.Boolean,
-        )
-    )
-    profiles = {
-        cik: company_profile(sec, cik)
-        for cik in sorted(set(matchable["cik"]) | {hub.cik for hub in hubs})
-    }
 
     edges: list[Edge] = []
     for row in matchable.iter_rows(named=True):
@@ -89,7 +111,8 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
             )
             log(call, "j3")
         hub = decision.hub
-        if hub is None:
+        # A filer's own name in its customer list is not a customer.
+        if hub is None or hub.cik == supplier.cik:
             continue
         flag = sic_flag(supplier.sic, hub.cik)
         if flag is None:
@@ -133,8 +156,9 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
         " FROM entity_edges"
     ).fetchone()
 
+built_at = datetime.now(UTC).strftime("%Y-%m-%dT%H%MZ")
 summary: dict[str, Any] = {
-    "date": date.today().isoformat(),
+    "built_at": built_at,
     "jev_route": settings.jev_route.value,
     "facts": {"read": len(rows), "new": new_facts},
     "candidates": {"rows": len(picked), "suppliers": picked["cik"].n_unique()},
@@ -142,6 +166,7 @@ summary: dict[str, Any] = {
     "resolution_by_candidate": dict(
         Counter(resolved[label].kind.value for label in picked["member_label"])
     ),
+    "supplier_targets": len(supplier_targets),
     "fuzzy_near_misses": sum(r.kind == MatchKind.NEAR_MISS for r in resolved.values()),
     "jev_input_tokens": tokens,
     "edges": {
@@ -151,6 +176,7 @@ summary: dict[str, Any] = {
         "by_extraction_method": dict(Counter(e.extraction_method for e in edges)),
         "by_relationship_flag": dict(Counter(e.relationship_flag for e in edges)),
         "open_windows": sum(e.valid_to is None for e in edges),
+        "to_suppliers": sum(e.dst_cik not in hub_ciks for e in edges),
     },
     "stored": dict(
         zip(
@@ -173,7 +199,8 @@ summary: dict[str, Any] = {
     },
 }
 SUMMARY_DIR.mkdir(parents=True, exist_ok=True)
-out = SUMMARY_DIR / f"{summary['date']}.json"
+# A timestamped name, so a second run the same day never overwrites a recorded one.
+out = SUMMARY_DIR / f"{built_at}.json"
 out.write_text(json.dumps(summary, indent=2, default=str) + "\n")
 print(json.dumps(summary, indent=2, default=str))
 print(out)
