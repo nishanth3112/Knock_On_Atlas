@@ -8,6 +8,8 @@ from knock_on_atlas.edgar.fsn import PLACEHOLDER_MEMBER
 from knock_on_atlas.edgar.submissions import CompanyProfile
 from knock_on_atlas.graph_store.resolve import Hub
 from knock_on_atlas.jev.questions import J3_APPROVE_MIN
+from knock_on_atlas.retrieval.embed import Embedder
+from knock_on_atlas.retrieval.hybrid import hybrid_search
 
 LAB_SIC = "8071"
 REIT_SIC = "6798"
@@ -212,3 +214,27 @@ def real_suppliers_by_hub(conn: psycopg.Connection) -> dict[str, int]:
         REAL_SUPPLIERS_SQL, {"min_confidence": J3_APPROVE_MIN}
     ).fetchall()
     return {cik: count for cik, _, count in rows}
+
+
+DISCLOSURE_QUERY = "{label} percent of net sales revenue customer"
+
+
+def concentration_disclosure(
+    conn: psycopg.Connection,
+    embedder: Embedder,
+    cik: str,
+    label: str,
+    accession: str,
+    filed: date,
+) -> str | None:
+    """The passage of the edge's own 10-K that best matches its customer disclosure.
+
+    None when the filing is not indexed (no BM25 index, or no chunk of it matches).
+    """
+    try:
+        hits = hybrid_search(
+            conn, embedder, DISCLOSURE_QUERY.format(label=label), [cik], filed, k=10
+        )
+    except LookupError:
+        return None
+    return next((h.content for h in hits if h.accession == accession), None)

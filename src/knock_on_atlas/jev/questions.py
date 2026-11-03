@@ -113,14 +113,23 @@ REL_NO_MAX = 0.3
 
 
 def relationship_state(
-    supplier: str, industry: str | None, customer: str, label: str
+    supplier: str,
+    industry: str | None,
+    customer: str,
+    label: str,
+    disclosure: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    state = {
         "supplier": supplier,
         "supplier_industry": industry or "unknown",
         "customer": customer,
         "customer_as_disclosed": label,
     }
+    # The supplier's own words about the customer, when the 10-K section is indexed:
+    # names and an industry code alone can't tell a sale from a marketplace.
+    if disclosure:
+        state["disclosure"] = disclosure
+    return state
 
 
 def relationship_questions() -> dict[str, Question]:
