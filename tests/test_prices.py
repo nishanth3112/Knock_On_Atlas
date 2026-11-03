@@ -71,3 +71,11 @@ def test_requests_are_spaced_for_basic_plan(sleeps: list[float]) -> None:
     for _ in range(2):
         client.daily_closes("SPY", date(2026, 10, 28), date(2026, 10, 30))
     assert sleeps == pytest.approx([7.5])
+
+
+def test_share_class_tickers_use_the_dotted_symbol() -> None:
+    client, seen = make_client()
+    with pytest.raises(TwelveDataError, match="MOG-A"):
+        client.daily_closes("MOG-A", date(2026, 10, 28), date(2026, 10, 30))
+    # SEC writes MOG-A; Twelve Data knows the same class as MOG.A.
+    assert seen[0].url.params["symbol"] == "MOG.A"

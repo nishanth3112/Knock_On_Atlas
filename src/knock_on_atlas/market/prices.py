@@ -30,7 +30,8 @@ class TwelveDataClient:
         response = self._http.get(
             "/time_series",
             params={
-                "symbol": symbol,
+                # SEC share classes use a dash (MOG-A); Twelve Data a dot (MOG.A).
+                "symbol": symbol.replace("-", "."),
                 "interval": "1day",
                 "start_date": start.isoformat(),
                 "end_date": end.isoformat(),

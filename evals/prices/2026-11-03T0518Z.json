@@ -1,0 +1,28 @@
+{
+  "built_at": "2026-11-03T0518Z",
+  "start": "2024-09-29",
+  "end": "2026-11-03",
+  "tickers": 95,
+  "fetched": 94,
+  "skipped_already_covered": 0,
+  "failed": {
+    "MOG-A": "MOG-A: HTTP 404 **symbol** or **figi** parameter is missing or invalid. Please provide a valid symbol according to API documentation: https://twelvedata.com/docs#reference-data"
+  },
+  "bars_stored": 48650,
+  "credits_used": 95,
+  "large_daily_moves": {
+    "ADCT": [
+      "2026-06-04"
+    ],
+    "ATER": [
+      "2026-04-28"
+    ],
+    "MRNA": [
+      "2026-08-19"
+    ],
+    "VISN": [
+      "2026-04-28",
+      "2026-08-28"
+    ]
+  }
+}
