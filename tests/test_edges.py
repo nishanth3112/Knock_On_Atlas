@@ -13,6 +13,7 @@ from knock_on_atlas.graph_store.edges import (
     insert_facts,
     next_annual_filing,
     one_edge_per_hub,
+    real_suppliers_by_hub,
     replace_edges,
     sic_flag,
     upsert_companies,
@@ -183,3 +184,32 @@ def test_upsert_companies_marks_hubs(db: psycopg.Connection) -> None:
         "SELECT cik, name, aliases, is_hub FROM companies ORDER BY cik"
     ).fetchall()
     assert rows == [(TARGET, "Target Corp", ["Target"], True), ("1", "Sup", [], False)]
+    upsert_companies(db, [profile("1", "Sup")], [])
+    assert db.execute("SELECT count(*) FROM companies WHERE is_hub").fetchone() == (0,)
+
+
+def test_real_suppliers_need_a_checked_relationship_or_a_reviewer(
+    db: psycopg.Connection,
+) -> None:
+    migrate(db)
+    hub = Hub(TARGET, "Target Corporation", ())
+    upsert_companies(
+        db, [CompanyProfile(TARGET, "Target Corp", None, None, (), ())], [hub]
+    )
+    unclear = {"relationship_flag": "unclear", "status": "pending"}
+    replace_edges(
+        db,
+        [
+            edge("Target", src_cik="1"),
+            edge("Target", src_cik="2", status="pending", confidence=0.5),
+            edge("Target", src_cik="3", **unclear),
+            edge("Target", src_cik="4", **unclear),
+            edge("Target", src_cik="5", status="rejected"),
+        ],
+    )
+    assert real_suppliers_by_hub(db) == {TARGET: 1}
+    db.execute(
+        "UPDATE entity_edges SET status = 'approved', reviewed_by = 'me'"
+        " WHERE src_cik = '3'"
+    )
+    assert real_suppliers_by_hub(db) == {TARGET: 2}

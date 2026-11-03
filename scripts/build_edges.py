@@ -26,6 +26,7 @@ from knock_on_atlas.graph_store.edges import (
     insert_facts,
     next_annual_filing,
     one_edge_per_hub,
+    real_suppliers_by_hub,
     replace_edges,
     sic_flag,
     upsert_companies,
@@ -119,6 +120,18 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
     edges, same_hub_dropped = one_edge_per_hub(edges)
     upsert_companies(conn, list(profiles.values()), hubs)
     inserted = replace_edges(conn, edges)
+    real_suppliers = real_suppliers_by_hub(conn)
+    # What is stored, including reviewer decisions the rebuild kept.
+    stored = conn.execute(
+        "SELECT count(*) FILTER (WHERE status = 'approved'),"
+        " count(*) FILTER (WHERE status = 'pending'),"
+        " count(*) FILTER (WHERE status = 'rejected'),"
+        " count(*) FILTER (WHERE status = 'pending' AND NOT total_share),"
+        " count(*) FILTER (WHERE reviewed_by IS NOT NULL),"
+        " count(DISTINCT src_cik) FILTER (WHERE status = 'approved'),"
+        " count(DISTINCT src_cik)"
+        " FROM entity_edges"
+    ).fetchone()
 
 summary: dict[str, Any] = {
     "date": date.today().isoformat(),
@@ -135,13 +148,28 @@ summary: dict[str, Any] = {
         "built": len(edges),
         "same_hub_labels_dropped": same_hub_dropped,
         "inserted": inserted,
-        "by_status": dict(Counter(e.status for e in edges)),
         "by_extraction_method": dict(Counter(e.extraction_method for e in edges)),
         "by_relationship_flag": dict(Counter(e.relationship_flag for e in edges)),
-        "pending_partial_share": sum(
-            not e.total_share and e.status == "pending" for e in edges
-        ),
         "open_windows": sum(e.valid_to is None for e in edges),
+    },
+    "stored": dict(
+        zip(
+            [
+                "approved",
+                "pending",
+                "rejected",
+                "pending_partial_share",
+                "reviewed",
+                "suppliers_with_approved_edges",
+                "suppliers",
+            ],
+            stored or (),
+            strict=True,
+        )
+    ),
+    # Hub rule: a hub stays only with >= 2 of these.
+    "real_suppliers_by_hub": {
+        f"{hub.cik} {hub.name}": real_suppliers.get(hub.cik, 0) for hub in hubs
     },
 }
 SUMMARY_DIR.mkdir(parents=True, exist_ok=True)
