@@ -1,3 +1,4 @@
+import hashlib
 import socket
 import uuid
 from collections.abc import Iterator
@@ -11,6 +12,8 @@ from psycopg.conninfo import conninfo_to_dict
 
 from knock_on_atlas.config import Settings, get_settings
 from knock_on_atlas.edgar.client import SecClient
+from knock_on_atlas.retrieval.bm25 import tokenize
+from knock_on_atlas.retrieval.embed import DIM
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 SEC_FIXTURES = Path(__file__).parent / "fixtures" / "sec"
@@ -91,8 +94,28 @@ def db() -> Iterator[psycopg.Connection]:
     schema = f"test_{uuid.uuid4().hex}"
     with psycopg.connect(url, autocommit=True) as conn:
         conn.execute(f"CREATE SCHEMA {schema}")
-        conn.execute(f"SET search_path TO {schema}")
+        # public holds the vector extension, shared by every schema.
+        conn.execute(f"SET search_path TO {schema}, public")
         try:
             yield conn
         finally:
             conn.execute(f"DROP SCHEMA {schema} CASCADE")
+
+
+class FakeEmbedder:
+    """Hashed bag of words: texts sharing words get similar vectors, offline."""
+
+    def passages(self, texts: list[str]) -> list[list[float]]:
+        return [self.query(text) for text in texts]
+
+    def query(self, text: str) -> list[float]:
+        vector = [0.0] * DIM
+        for token in tokenize(text):
+            vector[int(hashlib.md5(token.encode()).hexdigest(), 16) % DIM] += 1.0
+        norm = sum(x * x for x in vector) ** 0.5 or 1.0
+        return [x / norm for x in vector]
+
+
+@pytest.fixture
+def fake_embedder() -> FakeEmbedder:
+    return FakeEmbedder()
