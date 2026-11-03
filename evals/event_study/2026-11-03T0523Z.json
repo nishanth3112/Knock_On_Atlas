@@ -1,0 +1,25 @@
+{
+  "built_at": "2026-11-03T0523Z",
+  "last_session": "2026-11-02",
+  "events": 62,
+  "events_with_full_window": 62,
+  "events_without_full_window": [],
+  "studies": 302,
+  "studies_by_status": {
+    "complete": 288,
+    "no_ticker": 10,
+    "insufficient_history": 4
+  },
+  "studies_by_depth": {
+    "0": 62,
+    "1": 232,
+    "2": 8
+  },
+  "pending_events": [],
+  "insufficient_history_tickers": [
+    "VISN"
+  ],
+  "written_this_run": 302,
+  "credits_used": 0,
+  "fetch_failures": {}
+}
