@@ -147,3 +147,13 @@ def study_event(
         )
         written += 1
     return written
+
+
+def refresh_tickers(conn: psycopg.Connection) -> list[str]:
+    """The benchmark, then every ticker with a pending study: what a refresh fetches."""
+    rows = conn.execute(
+        "SELECT DISTINCT ticker FROM event_studies"
+        " WHERE status = 'pending' AND ticker <> %s ORDER BY 1",
+        (BENCHMARK,),
+    )
+    return [BENCHMARK] + [row[0] for row in rows]

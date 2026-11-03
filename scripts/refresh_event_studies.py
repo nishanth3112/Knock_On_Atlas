@@ -1,4 +1,4 @@
-"""Fetch new closes and recompute every event study that is not complete yet.
+"""Refetch closes and recompute every event study that is not complete yet.
 
 Runs daily, after scripts/backfill_prices.py. Closes are refetched for SPY and each
 ticker with a pending study (one Twelve Data call each), then every event in
@@ -19,8 +19,8 @@ import psycopg
 
 from knock_on_atlas.config import get_settings
 from knock_on_atlas.market.bars import upsert_closes
-from knock_on_atlas.market.calendar import BENCHMARK, EASTERN, sessions
-from knock_on_atlas.market.event_study import study_event
+from knock_on_atlas.market.calendar import EASTERN, sessions
+from knock_on_atlas.market.event_study import refresh_tickers, study_event
 from knock_on_atlas.market.prices import TwelveDataClient, TwelveDataError
 
 EVENTS = Path("evals/cases/events.csv")
@@ -43,15 +43,7 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
     # The whole stored range, not just new days, for the same one credit: Twelve
     # Data re-adjusts past closes after a split, so appended bars could mix bases.
     start = sessions(conn)[0]
-    tickers = [BENCHMARK] + [
-        row[0]
-        for row in conn.execute(
-            "SELECT DISTINCT ticker FROM event_studies"
-            " WHERE status = 'pending' AND ticker <> %s ORDER BY 1",
-            (BENCHMARK,),
-        )
-    ]
-    for ticker in tickers:
+    for ticker in refresh_tickers(conn):
         credits += 1
         try:
             bars = client.daily_closes(ticker, start, last_day)
