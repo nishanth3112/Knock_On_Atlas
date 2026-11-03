@@ -1,9 +1,9 @@
 """Fetch new closes and recompute every event study that is not complete yet.
 
-Runs daily. New closes are fetched for SPY and each ticker with a pending study
-(one Twelve Data call each), then every event in evals/cases/events.csv is studied
-for its filer and suppliers; complete studies stay as they are. Writes
-evals/event_study/<UTC timestamp>.json.
+Runs daily, after scripts/backfill_prices.py. Closes are refetched for SPY and each
+ticker with a pending study (one Twelve Data call each), then every event in
+evals/cases/events.csv is studied for its filer and suppliers; complete studies stay
+as they are. Writes evals/event_study/<UTC timestamp>.json.
 
 Usage: uv run python scripts/refresh_event_studies.py
 """
@@ -40,17 +40,22 @@ credits = 0
 failed: dict[str, str] = {}
 
 with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as conn:
-    stale = conn.execute(
-        "SELECT p.ticker, max(p.d) FROM price_bars p WHERE p.ticker = %s"
-        " OR p.ticker IN (SELECT ticker FROM event_studies WHERE status = 'pending')"
-        " GROUP BY p.ticker HAVING max(p.d) < %s",
-        (BENCHMARK, last_day),
-    ).fetchall()
-    for ticker, last in stale:
+    # The whole stored range, not just new days, for the same one credit: Twelve
+    # Data re-adjusts past closes after a split, so appended bars could mix bases.
+    start = sessions(conn)[0]
+    tickers = [BENCHMARK] + [
+        row[0]
+        for row in conn.execute(
+            "SELECT DISTINCT ticker FROM event_studies"
+            " WHERE status = 'pending' AND ticker <> %s ORDER BY 1",
+            (BENCHMARK,),
+        )
+    ]
+    for ticker in tickers:
         credits += 1
         try:
-            bars = client.daily_closes(ticker, last + timedelta(days=1), last_day)
-        except TwelveDataError as error:  # also raised when no new bar exists yet
+            bars = client.daily_closes(ticker, start, last_day)
+        except TwelveDataError as error:
             logger.warning("%s", error)
             failed[ticker] = str(error)
             continue
@@ -76,13 +81,9 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
 hub_status = {
     acc: (status, day0) for acc, _, _, depth, day0, status in rows if depth == 0
 }
-# A study is pending only once its history is complete (event_study.study), so
-# a known day 0 and a pending or complete status mean the window is full.
-full = [
-    acc
-    for acc, (status, day0) in hub_status.items()
-    if day0 is not None and status in ("complete", "pending")
-]
+# Only a complete study is known to have a full window; a pending one may still
+# be waiting for its history to be fetched.
+full = [acc for acc, (status, _) in hub_status.items() if status == "complete"]
 built_at = datetime.now(UTC).strftime("%Y-%m-%dT%H%MZ")
 summary = {
     "built_at": built_at,
