@@ -1,0 +1,26 @@
+{
+  "built_at": "2026-11-03T0235Z",
+  "corpus": {
+    "companies": 99,
+    "filings": 381,
+    "sections": 576,
+    "chunks": 28673,
+    "chunks_by_section": {
+      "10-K/item_1": 4234,
+      "10-K/item_1a": 7643,
+      "10-K/item_7": 5301,
+      "10-Q/item_2": 11495
+    },
+    "embedded_this_run": 28673
+  },
+  "table_bytes": {
+    "documents": 311296,
+    "document_chunks": 164741120,
+    "bm25_index": 60071936,
+    "entity_edges": 180224,
+    "jev_calls": 1589248
+  },
+  "database_bytes": 254097075,
+  "database_mb": 242.3,
+  "under_limit": true
+}
