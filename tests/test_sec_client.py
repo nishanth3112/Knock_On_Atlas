@@ -1,3 +1,6 @@
+import os
+import time
+from datetime import timedelta
 from pathlib import Path
 
 import httpx
@@ -86,4 +89,21 @@ def test_error_raises_and_is_not_cached(tmp_path: Path, clock: FakeClock) -> Non
     for _ in range(2):
         with pytest.raises(httpx.HTTPStatusError):
             client.get("https://data.sec.gov/missing.json")
+    assert len(seen) == 2
+
+
+def test_max_age_refetches_only_stale_copies(tmp_path: Path, clock: FakeClock) -> None:
+    client, seen = make_client(tmp_path)
+    url = "https://data.sec.gov/submissions/CIK0000000001.json"
+    client.get(url)
+    client.get(url, max_age=timedelta(days=1))
+    assert len(seen) == 1
+    (cached,) = (tmp_path / "cache").iterdir()
+    two_days_ago = time.time() - 2 * 86400
+    os.utime(cached, (two_days_ago, two_days_ago))
+    client.get(url, max_age=timedelta(days=1))
+    assert len(seen) == 2
+    # Without max_age the copy is good forever, however old.
+    os.utime(cached, (two_days_ago, two_days_ago))
+    client.get(url)
     assert len(seen) == 2
