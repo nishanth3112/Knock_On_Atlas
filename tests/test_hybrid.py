@@ -5,6 +5,7 @@ import pytest
 
 from knock_on_atlas.db.migrate import migrate
 from knock_on_atlas.edgar.filings import Filing
+from knock_on_atlas.retrieval import hybrid
 from knock_on_atlas.retrieval.bm25 import build_index
 from knock_on_atlas.retrieval.corpus import store_section
 from knock_on_atlas.retrieval.embed import Embedder, embed_missing
@@ -73,3 +74,26 @@ def test_search_refuses_an_unscoped_query(
 ) -> None:
     with pytest.raises(ValueError, match="CIK"):
         rankings(corpus, fake_embedder, "Walmart", [], date(2026, 12, 31))
+
+
+def test_chunk_removed_after_ranking_is_skipped(
+    corpus: psycopg.Connection,
+    fake_embedder: Embedder,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def rank_then_rechunk(
+        conn: psycopg.Connection,
+        embedder: Embedder,
+        query: str,
+        ciks: list[str],
+        as_of: date,
+    ) -> dict[str, list[int]]:
+        ranked = rankings(conn, embedder, query, ciks, as_of)
+        conn.execute("DELETE FROM document_chunks WHERE id = %s", (ranked["bm25"][0],))
+        return ranked
+
+    monkeypatch.setattr(hybrid, "rankings", rank_then_rechunk)
+    hits = hybrid_search(
+        corpus, fake_embedder, "Walmart share of net sales", [BG], date(2026, 6, 30)
+    )
+    assert hits and "bg-1" not in {h.accession for h in hits}

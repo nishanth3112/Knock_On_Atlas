@@ -93,6 +93,8 @@ def hybrid_search(
     }
     hits = []
     for chunk_id, score in fused:
+        if chunk_id not in rows:  # re-chunked since it was ranked
+            continue
         _, content, cik, form, section, accession, source_date, url = rows[chunk_id]
         ranks = {
             name: ids.index(chunk_id) + 1
