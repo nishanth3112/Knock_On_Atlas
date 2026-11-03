@@ -1,5 +1,7 @@
 import hashlib
 import json
+import time
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -27,9 +29,13 @@ class SecClient:
         self._limiter = RateLimiter(SEC_REQUESTS_PER_SECOND)
         self._cache_dir = cache_dir
 
-    def get(self, url: str) -> bytes:
+    def get(self, url: str, max_age: timedelta | None = None) -> bytes:
+        """Cached forever, or refetched once the cached copy is older than max_age."""
         path = self._cache_dir / hashlib.sha256(url.encode()).hexdigest()
-        if path.exists():
+        if path.exists() and (
+            max_age is None
+            or time.time() - path.stat().st_mtime <= max_age.total_seconds()
+        ):
             return path.read_bytes()
         self._limiter.wait()
         response = self._http.get(url)
@@ -41,8 +47,8 @@ class SecClient:
         tmp.replace(path)
         return response.content
 
-    def get_json(self, url: str) -> Any:
-        return json.loads(self.get(url))
+    def get_json(self, url: str, max_age: timedelta | None = None) -> Any:
+        return json.loads(self.get(url, max_age))
 
     def download(self, url: str, dest: Path) -> Path:
         # Streams to disk: FS&N zips are ~300 MB, too big for get()'s in-memory body.

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.edgar.tickers import pad_cik
@@ -53,9 +53,15 @@ class CompanyProfile:
     ten_k_filed: tuple[date, ...]  # ascending; amendments excluded
 
 
+# Edges end at the supplier's next 10-K, so a rebuild must see newly filed ones.
+PROFILE_MAX_AGE = timedelta(days=1)
+
+
 def company_profile(client: SecClient, cik: int | str) -> CompanyProfile:
     padded = pad_cik(cik)
-    data = client.get_json(f"https://data.sec.gov/submissions/CIK{padded}.json")
+    data = client.get_json(
+        f"https://data.sec.gov/submissions/CIK{padded}.json", PROFILE_MAX_AGE
+    )
     recent = data["filings"]["recent"]
     return CompanyProfile(
         cik=padded,
