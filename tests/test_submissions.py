@@ -1,7 +1,12 @@
 from datetime import UTC, date, datetime
 
 from knock_on_atlas.edgar.client import SecClient
-from knock_on_atlas.edgar.submissions import company_profile, recent_8ks
+from knock_on_atlas.edgar.submissions import (
+    Filing8K,
+    company_profile,
+    material_8ks,
+    recent_8ks,
+)
 
 
 def test_keeps_only_original_8ks(sec_client: SecClient) -> None:
@@ -39,3 +44,20 @@ def test_company_profile_keeps_original_10k_dates(sec_client: SecClient) -> None
         date(2025, 2, 25),
         date(2026, 3, 3),
     )
+
+
+def eight_k(accession: str, filed: date, items: tuple[str, ...]) -> Filing8K:
+    accepted = datetime(filed.year, filed.month, filed.day, 21, tzinfo=UTC)
+    return Filing8K("0000104169", accession, filed, accepted, items, "x.htm")
+
+
+def test_material_8ks_keep_material_items_since_a_date() -> None:
+    filings = [
+        eight_k("a-1", date(2026, 2, 19), ("2.02", "9.01")),  # earnings only
+        eight_k("a-2", date(2026, 1, 5), ("1.01", "9.01")),
+        eight_k("a-3", date(2025, 10, 30), ("2.05",)),  # before the cut
+        eight_k("a-4", date(2025, 11, 1), ("8.01",)),
+        eight_k("a-5", date(2026, 3, 2), ()),
+    ]
+    kept = material_8ks(filings, date(2025, 11, 1))
+    assert [f.accession for f in kept] == ["a-2", "a-4"]
