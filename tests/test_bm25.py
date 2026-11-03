@@ -64,6 +64,10 @@ def test_search_ranks_within_scope_and_date(corpus: psycopg.Connection) -> None:
     assert sorted(accessions(corpus, later)) == ["a-1", "a-3"]
 
 
+def test_query_without_words_finds_nothing(corpus: psycopg.Connection) -> None:
+    assert bm25_search(corpus, "?", [BG], date(2026, 12, 31), 5) == []
+
+
 def test_search_reloads_after_a_rebuild(corpus: psycopg.Connection) -> None:
     assert bm25_search(corpus, "dividend", [BG], date(2026, 12, 31), 5) == []
     store_section(
