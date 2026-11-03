@@ -1,4 +1,4 @@
-"""Fetch 10-K and 10-Q filings for every graph company and record their sections.
+"""Fetch 10-K and 10-Q filings for every graph company; record and chunk their sections.
 
 Graph companies are the hubs and every company on a non-rejected edge.
 
@@ -20,7 +20,7 @@ from knock_on_atlas.edgar.filings import (
     html_to_lines,
     recent_filings,
 )
-from knock_on_atlas.retrieval.corpus import upsert_document
+from knock_on_atlas.retrieval.corpus import store_section
 
 # The first FS&N month the edges come from.
 SINCE = date(2025, 11, 1)
@@ -32,6 +32,7 @@ sec = SecClient(settings.sec_user_agent, Path("data/raw/sec_cache"))
 found: Counter[str] = Counter()
 missing: Counter[str] = Counter()
 failed: list[str] = []
+chunks = 0
 
 with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as conn:
     ciks = [
@@ -55,7 +56,7 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
             continue
         for section in SECTIONS[filing.form].values():
             if section in sections:
-                upsert_document(conn, filing, section, sections[section])
+                chunks += store_section(conn, filing, section, sections[section])
                 found[f"{filing.form}/{section}"] += 1
             else:
                 missing[f"{filing.form}/{section}"] += 1
@@ -63,3 +64,4 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
 print(f"{len(ciks)} companies, {len(filings)} filings, {len(failed)} failed")
 print(f"sections found: {dict(found)}")
 print(f"sections missing: {dict(missing)}")
+print(f"chunks written: {chunks}")

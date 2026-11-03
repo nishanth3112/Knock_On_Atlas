@@ -28,7 +28,7 @@ TEN_K = f"""<html><body>
 <tr><td>Item 1A.</td><td>Risk Factors</td><td>12</td></tr>
 <tr><td>Item 7.</td><td>Management&#8217;s Discussion</td><td>30</td></tr>
 </table>
-<div><span>Item&#160;1. Business.</span></div><p>{BODY}</p>
+<div><span>Item&#160;1. Business.</span></div><p>{BODY}&#8203;</p>
 <div>Item 1. Business (Continued)</div><p>Second page of the business section.</p>
 <div>ITEM 1A. RISK FACTORS</div><p>{BODY}</p>
 <div>Item 1B. Unresolved Staff Comments.</div><p>None.</p>
@@ -49,6 +49,7 @@ def test_html_to_lines_keeps_visible_text_only() -> None:
     text = "\n".join(lines)
     assert "HiddenFact" not in text and "var x" not in text
     assert "Item 1. Business." in lines  # &#160; became a plain space
+    assert "\u200b" not in text
     assert "Item 1. Business 3" in lines  # table cells joined on one line
 
 
