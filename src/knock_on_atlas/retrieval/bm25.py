@@ -83,6 +83,9 @@ def bm25_search(
     conn: psycopg.Connection, query: str, ciks: list[str], as_of: date, k: int
 ) -> list[tuple[int, float]]:
     """(chunk id, score) for the k best chunks of these companies filed by as_of."""
+    tokens = tokenize(query)
+    if not tokens:  # bm25s raises IndexError on an empty query
+        return []
     index = _index(conn)
     allowed = [
         row[0]
@@ -92,6 +95,6 @@ def bm25_search(
         )
     ]
     mask = np.isin(index.chunk_ids, allowed).astype(np.float32)
-    scores = index.model.get_scores(tokenize(query), weight_mask=mask)
+    scores = index.model.get_scores(tokens, weight_mask=mask)
     best = [i for i in np.argsort(-scores)[:k] if scores[i] > 0]
     return [(int(index.chunk_ids[i]), float(scores[i])) for i in best]
