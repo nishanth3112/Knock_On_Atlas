@@ -21,7 +21,7 @@ def test_parse_passages() -> None:
     assert parse_passages("") == []
 
 
-def test_judge_needs_filing_section_and_quote_and_credits_once() -> None:
+def test_judge_needs_filing_section_and_quote_and_credits_each_passage_once() -> None:
     passages = [Passage("a-1", "item_1", "31% of  Net Sales")]
     hits = [
         ("a-1", "item_7", "Walmart was 31% of net sales"),  # wrong section
@@ -29,7 +29,18 @@ def test_judge_needs_filing_section_and_quote_and_credits_once() -> None:
         ("a-1", "item_1", "overlap: 31% of net sales"),  # same passage again
         ("a-1", "item_1", "unrelated"),
     ]
-    assert judge(hits, passages) == [False, True, False, False]
+    assert judge(hits, passages) == [0, 1, 0, 0]
+
+
+def test_one_chunk_can_cover_two_passages() -> None:
+    passages = [
+        Passage("a-1", "item_1a", "Walmart"),
+        Passage("a-1", "item_1a", "Target"),
+    ]
+    covered = judge([("a-1", "item_1a", "Walmart and Target are customers")], passages)
+    assert covered == [2]
+    assert recall_at(covered, total=2, k=10) == 1.0
+    assert mrr_at(covered, k=10) == ndcg_at(covered, total=2, k=1) == 1.0
 
 
 def test_metrics_on_a_hand_computed_ranking() -> None:
