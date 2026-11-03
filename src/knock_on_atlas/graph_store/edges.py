@@ -229,7 +229,8 @@ def concentration_disclosure(
 ) -> str | None:
     """The passage of the edge's own 10-K that best matches its customer disclosure.
 
-    None when the filing is not indexed (no BM25 index, or no chunk of it matches).
+    None when there is no BM25 index, or when none of the top 10 hits for the
+    supplier (all its filings up to `filed`) comes from this filing.
     """
     try:
         hits = hybrid_search(

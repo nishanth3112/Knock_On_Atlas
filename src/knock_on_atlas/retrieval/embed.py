@@ -8,8 +8,8 @@ MODEL = "BAAI/bge-small-en-v1.5"
 DIM = 384
 MODEL_CACHE = "data/models"
 EMBED_BATCH = 256
-# fastembed pads each batch to its longest text; on the M-series CPU used here,
-# batches of 8 ran fastest (8.6 chunks/s vs 5.3 at 64, measured 2026-11-03).
+# fastembed pads each batch to its longest text, so small batches of mixed-length
+# chunks ran fastest on CPU (batch sizes measured 2026-11-03).
 PASSAGE_BATCH = 8
 
 
