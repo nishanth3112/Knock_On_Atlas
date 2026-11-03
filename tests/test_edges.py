@@ -165,10 +165,13 @@ def test_replace_edges_keeps_reviewed_edges(db: psycopg.Connection) -> None:
         " WHERE src_cik = '0000000002'"
     )
     # The rebuild drops the unreviewed edge it no longer produces and keeps the
-    # rejected one, even though it produces it again.
-    assert replace_edges(db, [edge("Target", src_cik="0000000002")]) == 0
-    rows = db.execute("SELECT src_cik, status FROM entity_edges").fetchall()
-    assert rows == [("0000000002", "rejected")]
+    # rejected one, even though it produces it again; only its window moves.
+    rebuilt = edge("Target", src_cik="0000000002", valid_to=date(2026, 8, 14))
+    assert replace_edges(db, [rebuilt]) == 1
+    rows = db.execute(
+        "SELECT src_cik, status, reviewed_by, valid_to FROM entity_edges"
+    ).fetchall()
+    assert rows == [("0000000002", "rejected", "me", date(2026, 8, 14))]
 
 
 def test_upsert_companies_marks_hubs(db: psycopg.Connection) -> None:

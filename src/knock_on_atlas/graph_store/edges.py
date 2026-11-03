@@ -146,13 +146,18 @@ def one_edge_per_hub(edges: list[Edge]) -> tuple[list[Edge], int]:
 
 
 def replace_edges(conn: psycopg.Connection, edges: list[Edge]) -> int:
-    """Swap in a fresh build; edges a reviewer has decided stay as they are."""
+    """Swap in a fresh build; a reviewed edge keeps its decision, but its window
+    still ends when the supplier files its next 10-K.
+
+    Returns rows written: new edges plus reviewed edges whose window was refreshed.
+    """
     with conn.transaction(), conn.cursor() as cur:
         cur.execute("DELETE FROM entity_edges WHERE reviewed_by IS NULL")
         cur.executemany(
             f"INSERT INTO entity_edges ({', '.join(EDGE_COLUMNS)})"
             f" VALUES ({', '.join(['%s'] * len(EDGE_COLUMNS))})"
-            " ON CONFLICT DO NOTHING",
+            " ON CONFLICT (src_cik, dst_cik, type, period_end, method)"
+            " DO UPDATE SET valid_to = excluded.valid_to",
             [astuple(e) for e in edges],
         )
         return cur.rowcount
