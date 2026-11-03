@@ -8,7 +8,13 @@ import pytest
 from knock_on_atlas.db.migrate import migrate
 from knock_on_atlas.graph_store.edges import Edge, replace_edges
 from knock_on_atlas.market.bars import upsert_closes
-from knock_on_atlas.market.event_study import BEFORE, Study, study, study_event
+from knock_on_atlas.market.event_study import (
+    BEFORE,
+    Study,
+    refresh_tickers,
+    study,
+    study_event,
+)
 
 ALPHA, BETA = 0.0002, 1.3
 JUMP_0, JUMP_1 = 0.05, 0.02
@@ -122,3 +128,15 @@ def test_study_event_covers_the_hub_and_its_suppliers(db: psycopg.Connection) ->
     study_event(db, "8k-1", "H", accepted, SESSIONS)
     ciks = db.execute("SELECT cik FROM event_studies ORDER BY cik").fetchall()
     assert ciks == [("H",), ("N",), ("S",)]
+
+
+def test_refresh_fetches_spy_and_pending_tickers_once(db: psycopg.Connection) -> None:
+    migrate(db)
+    db.execute(
+        "INSERT INTO event_studies (accession, cik, ticker, depth, status) VALUES"
+        " ('a', 'H', 'HUB', 0, 'pending'), ('b', 'H', 'HUB', 0, 'pending'),"
+        " ('a', 'S', 'SUP', 1, 'complete'),"
+        " ('a', 'T', 'TWO', 1, 'insufficient_history'),"
+        " ('a', 'N', NULL, 1, 'no_ticker'), ('a', 'P', 'SPY', 1, 'pending')"
+    )
+    assert refresh_tickers(db) == ["SPY", "HUB"]
