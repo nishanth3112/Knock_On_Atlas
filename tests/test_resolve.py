@@ -62,3 +62,14 @@ def test_load_hubs_splits_aliases(tmp_path: Path) -> None:
     hubs = load_hubs(path)
     assert hubs[1].aliases == ("Wal-Mart", "Walmart, Inc.")
     assert hubs[2].aliases == ()
+
+
+def test_supplier_targets_match_sec_style_names() -> None:
+    # Supplier targets carry only their SEC name, upper case and without aliases.
+    targets = [*HUBS, Hub("0000026172", "CUMMINS INC", ())]
+    exact = resolve("Cummins Inc", targets)
+    assert exact.kind == MatchKind.ALIAS_EXACT
+    assert exact.candidates[0].hub.cik == "0000026172"
+    fuzzy = resolve("Cummins", targets)
+    assert fuzzy.kind == MatchKind.FUZZY
+    assert fuzzy.candidates[0].hub.cik == "0000026172"
