@@ -4,6 +4,13 @@ from datetime import date, datetime, timedelta
 from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.edgar.tickers import pad_cik
 
+# Submissions change with every filing: a new 10-K ends edges, a new 8-K is an event.
+PROFILE_MAX_AGE = timedelta(days=1)
+# 8-K items that can move a supplier's revenue; used to draft eval events.
+MATERIAL_ITEMS = frozenset(
+    {"1.01", "1.02", "1.03", "2.01", "2.05", "2.06", "4.02", "8.01"}
+)
+
 
 @dataclass(frozen=True)
 class Filing8K:
@@ -26,7 +33,7 @@ class Filing8K:
 def recent_8ks(client: SecClient, cik: int | str) -> list[Filing8K]:
     padded = pad_cik(cik)
     url = f"https://data.sec.gov/submissions/CIK{padded}.json"
-    recent = client.get_json(url)["filings"]["recent"]
+    recent = client.get_json(url, PROFILE_MAX_AGE)["filings"]["recent"]
     return [
         Filing8K(
             cik=padded,
@@ -43,6 +50,10 @@ def recent_8ks(client: SecClient, cik: int | str) -> list[Filing8K]:
     ]
 
 
+def material_8ks(filings: list[Filing8K], since: date) -> list[Filing8K]:
+    return [f for f in filings if f.filed >= since and MATERIAL_ITEMS & set(f.items)]
+
+
 @dataclass(frozen=True)
 class CompanyProfile:
     cik: str
@@ -51,10 +62,6 @@ class CompanyProfile:
     sic_description: str | None
     tickers: tuple[str, ...]
     ten_k_filed: tuple[date, ...]  # ascending; amendments excluded
-
-
-# Edges end at the supplier's next 10-K, so a rebuild must see newly filed ones.
-PROFILE_MAX_AGE = timedelta(days=1)
 
 
 def company_profile(client: SecClient, cik: int | str) -> CompanyProfile:
