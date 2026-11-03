@@ -162,7 +162,12 @@ def upsert_companies(
     conn: psycopg.Connection, profiles: list[CompanyProfile], hubs: list[Hub]
 ) -> None:
     aliases = {hub.cik: list(hub.aliases) for hub in hubs}
-    with conn.cursor() as cur:
+    with conn.transaction(), conn.cursor() as cur:
+        # A company dropped from hubs.csv stops being a hub.
+        cur.execute(
+            "UPDATE companies SET is_hub = false WHERE NOT cik = ANY(%s)",
+            (list(aliases),),
+        )
         cur.executemany(
             "INSERT INTO companies (cik, name, sic, tickers, aliases, is_hub)"
             " VALUES (%s, %s, %s, %s, %s, %s)"
@@ -181,3 +186,24 @@ def upsert_companies(
                 for p in profiles
             ],
         )
+
+
+# The hub rule counts suppliers that pass both checks, or that a reviewer approved.
+REAL_SUPPLIERS_SQL = """
+SELECT h.cik, h.name, count(DISTINCT e.src_cik) FILTER (
+  WHERE e.status <> 'rejected' AND (
+    (e.status = 'approved' AND e.reviewed_by IS NOT NULL)
+    OR (e.relationship_flag IS NULL AND e.confidence >= %(min_confidence)s)))
+FROM companies h LEFT JOIN entity_edges e ON e.dst_cik = h.cik
+WHERE h.is_hub
+GROUP BY h.cik, h.name
+ORDER BY 3, h.name
+"""
+
+
+def real_suppliers_by_hub(conn: psycopg.Connection) -> dict[str, int]:
+    """Hub CIK -> suppliers with a sure identity and a checked relationship."""
+    rows = conn.execute(
+        REAL_SUPPLIERS_SQL, {"min_confidence": J3_APPROVE_MIN}
+    ).fetchall()
+    return {cik: count for cik, _, count in rows}

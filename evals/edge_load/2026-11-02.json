@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-02",
+  "jev_route": "typesafe",
+  "facts": {
+    "read": 13414,
+    "new": 0
+  },
+  "candidates": {
+    "rows": 805,
+    "suppliers": 417
+  },
+  "resolution_by_label": {
+    "none": 570,
+    "alias_exact": 61,
+    "near_miss": 37,
+    "fuzzy": 40
+  },
+  "resolution_by_candidate": {
+    "none": 621,
+    "alias_exact": 102,
+    "near_miss": 37,
+    "fuzzy": 45
+  },
+  "fuzzy_near_misses": 37,
+  "jev_input_tokens": 103074,
+  "edges": {
+    "built": 106,
+    "same_hub_labels_dropped": 1,
+    "inserted": 105,
+    "by_extraction_method": {
+      "alias_exact": 102,
+      "jev_choice": 4
+    },
+    "by_relationship_flag": {
+      "null": 94,
+      "unclear": 7,
+      "landlord": 4,
+      "not_a_customer": 1
+    },
+    "open_windows": 106
+  },
+  "stored": {
+    "approved": 86,
+    "pending": 20,
+    "rejected": 0,
+    "pending_partial_share": 10,
+    "reviewed": 1,
+    "suppliers_with_approved_edges": 59,
+    "suppliers": 74
+  },
+  "real_suppliers_by_hub": {
+    "0000104169 Walmart Inc.": 19,
+    "0001018724 Amazon.com, Inc.": 4,
+    "0000927653 McKesson Corporation": 11,
+    "0001140859 Cencora, Inc.": 10,
+    "0000721371 Cardinal Health, Inc.": 9,
+    "0001166691 Comcast Corporation": 5,
+    "0000027419 Target Corporation": 2,
+    "0000101829 RTX Corporation": 2,
+    "0000909832 Costco Wholesale Corporation": 2,
+    "0000354950 The Home Depot, Inc.": 6,
+    "0000936468 Lockheed Martin Corporation": 2,
+    "0001133421 Northrop Grumman Corporation": 3,
+    "0000012927 The Boeing Company": 4,
+    "0001467858 General Motors Company": 4,
+    "0000037996 Ford Motor Company": 5,
+    "0000075362 PACCAR Inc": 4,
+    "0000732717 AT&T Inc.": 2
+  }
+}
