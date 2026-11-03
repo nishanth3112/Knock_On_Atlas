@@ -8,6 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "bm25s>=0.3.16",
+    "fastembed>=0.9.1",
     "httpx>=0.28.1",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.2",
@@ -44,3 +46,8 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 strict = true
 files = ["src"]
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# bm25s ships no type information.
+module = ["bm25s", "bm25s.*"]
+ignore_missing_imports = true
