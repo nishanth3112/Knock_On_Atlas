@@ -21,6 +21,7 @@ from knock_on_atlas.edgar.submissions import company_profile
 from knock_on_atlas.graph_store.edges import (
     Edge,
     candidates,
+    concentration_disclosure,
     edge_status,
     fact_rows,
     insert_facts,
@@ -45,6 +46,7 @@ from knock_on_atlas.jev.questions import (
     relationship_flag,
     relationship_state,
 )
+from knock_on_atlas.retrieval.embed import BgeEmbedder
 
 FSN_DIR = Path("data/processed/fsn")
 HUBS = Path("data/hubs.csv")
@@ -88,6 +90,8 @@ matchable = matching(resolved)
 for cik in sorted(set(matchable["cik"]) - set(profiles)):
     profiles[cik] = company_profile(sec, cik)
 tokens = 0
+disclosures = 0
+embedder = BgeEmbedder()
 
 with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as conn:
 
@@ -116,8 +120,21 @@ with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) 
             continue
         flag = sic_flag(supplier.sic, hub.cik)
         if flag is None:
+            disclosure = concentration_disclosure(
+                conn,
+                embedder,
+                supplier.cik,
+                row["member_label"],
+                row["accession"],
+                row["filed"],
+            )
+            disclosures += disclosure is not None
             state = relationship_state(
-                supplier.name, supplier.sic_description, hub.name, row["member_label"]
+                supplier.name,
+                supplier.sic_description,
+                hub.name,
+                row["member_label"],
+                disclosure,
             )
             flag, call = relationship_flag(jev, state)
             log(call, "relationship")
@@ -176,6 +193,7 @@ summary: dict[str, Any] = {
         "by_extraction_method": dict(Counter(e.extraction_method for e in edges)),
         "by_relationship_flag": dict(Counter(e.relationship_flag for e in edges)),
         "open_windows": sum(e.valid_to is None for e in edges),
+        "relationship_checks_with_disclosure": disclosures,
         "to_suppliers": sum(e.dst_cik not in hub_ciks for e in edges),
     },
     "stored": dict(

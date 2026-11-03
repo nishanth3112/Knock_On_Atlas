@@ -171,3 +171,13 @@ def test_relationship_unchecked_when_jev_is_off() -> None:
     state = relationship_state("B&G Foods, Inc.", None, "Walmart Inc.", "WalMart")
     assert state["supplier_industry"] == "unknown"
     assert relationship_flag(None, state) == ("unchecked", None)
+
+
+def test_relationship_state_carries_the_disclosure_only_when_found() -> None:
+    plain = relationship_state("B&G Foods, Inc.", "Food", "Walmart Inc.", "WalMart")
+    assert "disclosure" not in plain
+    text = "Walmart accounted for approximately 31.0% of our net sales."
+    with_text = relationship_state(
+        "B&G Foods, Inc.", "Food", "Walmart Inc.", "WalMart", text
+    )
+    assert with_text == {**plain, "disclosure": text}

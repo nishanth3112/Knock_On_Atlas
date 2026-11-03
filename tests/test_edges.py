@@ -4,10 +4,12 @@ import polars as pl
 import psycopg
 
 from knock_on_atlas.db.migrate import migrate
+from knock_on_atlas.edgar.filings import Filing
 from knock_on_atlas.edgar.submissions import CompanyProfile
 from knock_on_atlas.graph_store.edges import (
     Edge,
     candidates,
+    concentration_disclosure,
     edge_status,
     fact_rows,
     insert_facts,
@@ -19,6 +21,9 @@ from knock_on_atlas.graph_store.edges import (
     upsert_companies,
 )
 from knock_on_atlas.graph_store.resolve import Hub
+from knock_on_atlas.retrieval.bm25 import build_index
+from knock_on_atlas.retrieval.corpus import store_section
+from knock_on_atlas.retrieval.embed import Embedder, embed_missing
 
 TOTAL = "ConcentrationRiskByBenchmark=SalesRevenueNet;ConcentrationRiskByType=X;"
 
@@ -216,3 +221,36 @@ def test_real_suppliers_need_a_checked_relationship_or_a_reviewer(
         " WHERE src_cik = '3'"
     )
     assert real_suppliers_by_hub(db) == {TARGET: 2}
+
+
+def test_concentration_disclosure_comes_from_the_edges_own_10k(
+    db: psycopg.Connection, fake_embedder: Embedder
+) -> None:
+    migrate(db)
+    bg = "0001278027"
+    assert (
+        concentration_disclosure(
+            db, fake_embedder, bg, "Walmart", "own", date(2026, 3, 3)
+        )
+        is None
+    )  # nothing indexed yet
+    sections = [
+        ("own", date(2026, 3, 3), "Walmart accounted for 31% of our net sales."),
+        # A closer match in another filing must not stand in for the edge's own.
+        ("other", date(2026, 2, 1), "Walmart percent of net sales revenue customer."),
+    ]
+    for accession, filed, text in sections:
+        f = Filing(bg, accession, "10-K", filed, None, "x.htm")
+        store_section(db, f, "item_1", text)
+    embed_missing(db, fake_embedder)
+    build_index(db)
+    found = concentration_disclosure(
+        db, fake_embedder, bg, "Walmart", "own", date(2026, 3, 3)
+    )
+    assert found == "Walmart accounted for 31% of our net sales."
+    assert (
+        concentration_disclosure(
+            db, fake_embedder, bg, "Walmart", "missing", date(2026, 3, 3)
+        )
+        is None
+    )
