@@ -1,0 +1,21 @@
+query_id,query,ciks,as_of,relevant,notes
+q01,Walmart percentage of net sales,0001278027,2026-06-30,,B&G Foods -> Walmart 31%
+q02,largest customers Walmart and Target share of net sales,0001009829,2026-06-30,,JAKKS -> Target 26.6% and Walmart 26.1%
+q03,AT&T percentage of contract revenues,0000067215,2026-06-30,,Dycom -> AT&T 25.4%
+q04,McKesson Cencora Cardinal wholesaler concentration of revenue,0001512762,2026-06-30,,Coherus -> three wholesalers
+q05,Cencora percentage of product sales,0001808665,2026-06-30,,Assertio -> Cencora 45%
+q06,General Motors share of revenue,0001062231,2026-06-30,,Dauch -> GM 44%
+q07,Gilead collaboration revenue,0001426800,2026-06-30,,Assembly Bio -> Gilead 100%
+q08,Viatris collaboration revenue share,0001583107,2026-06-30,,Theravance -> Viatris 100%
+q09,Home Depot share of net sales,0000825542,2026-06-30,,Scotts Miracle-Gro -> Home Depot 34%
+q10,Northrop Grumman percentage of revenue,0000864240,2026-06-30,,Sypris -> Northrop 23%
+q11,Cummins as a customer,0001921963,2026-06-30,,Atmus -> Cummins 18.8%
+q12,Walmart and Amazon percentage of revenue,0001709164,2026-06-30,,Hamilton Beach -> Walmart 29% and Amazon 19%
+q13,loss of a major customer would harm results,0001278027,2026-06-30,,risk factor
+q14,customer concentration risk dependence on a few customers,0001009829,2026-06-30,,risk factor
+q15,tariffs on imported products from China,0001009829,2026-06-30,,risk factor
+q16,reliance on wholesale distributors for drug sales,0000014272,2026-06-30,,risk factor (Bristol Myers)
+q17,inventory levels and supplier purchasing,0000104169,2026-11-02,,hub MD&A (Walmart)
+q18,supplier disruptions and production losses,0000037996,2026-11-02,,hub MD&A (Ford)
+q19,truck market demand outlook,0000075362,2026-11-02,,hub MD&A (PACCAR)
+q20,drug distribution revenue growth from specialty products,0000927653,2026-11-02,,hub MD&A (McKesson)
