@@ -30,7 +30,7 @@ class Study:
 
 
 def car(stock: np.ndarray, market: np.ndarray, t0: int) -> Study:
-    """Market model on daily log returns; estimation window [-250, -30] (spec §13)."""
+    """Market model on daily log returns; estimation days -250..-31 (spec §13)."""
     est = slice(t0 - 250, t0 - 30)
     beta, alpha = np.polyfit(market[est], stock[est], 1)
     resid_sd = np.std(stock[est] - (alpha + beta * market[est]), ddof=2)
@@ -60,14 +60,13 @@ def study(
     if t < BEFORE:
         return Study("insufficient_history", day0)
     days = sessions[t - BEFORE : t + AFTER + 1]
-    # Closes up to day -3 are history; from day -2 on (the [-1, +5] returns) they
-    # may simply not exist yet. History is checked first, so pending means the
-    # estimation window is already complete.
-    if any(d not in stock for d in days[: BEFORE - 2]):
+    # A close missing before the stock's last stored bar is a gap that won't fill;
+    # one missing after it has not been fetched yet.
+    last = max(stock, default=date.min)
+    missing = [d for d in days if d not in stock]
+    if any(d < last for d in missing):
         return Study("insufficient_history", day0)
-    if len(days) < BEFORE + AFTER + 1 or any(
-        d not in stock for d in days[BEFORE - 2 :]
-    ):
+    if missing or len(days) < BEFORE + AFTER + 1:
         return Study("pending", day0)
     returns = [np.diff(np.log([prices[d] for d in days])) for prices in (stock, market)]
     return replace(car(returns[0], returns[1], t0=BEFORE - 1), day0=day0)
@@ -91,6 +90,12 @@ def study_event(
         depths[row.supplier_cik] = min(
             row.depth, depths.get(row.supplier_cik, row.depth)
         )
+    # A supplier whose edge was rejected or ended loses its open study.
+    conn.execute(
+        "DELETE FROM event_studies WHERE accession = %s AND status <> 'complete'"
+        " AND cik <> ALL(%s)",
+        (accession, list(depths)),
+    )
     done = {
         row[0]
         for row in conn.execute(

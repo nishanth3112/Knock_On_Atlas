@@ -59,8 +59,13 @@ def test_statuses_when_closes_are_missing() -> None:
     # A fresh event is pending only if its history is complete.
     fresh = SESSIONS[: T0 + 2]
     assert study(gap, market, SESSIONS[T0], fresh).status == "insufficient_history"
+    # A halt on day +3 with bars after it is a gap that never fills.
     late = {d: p for d, p in stock.items() if d != SESSIONS[T0 + 3]}
-    assert study(late, market, SESSIONS[T0], SESSIONS).status == "pending"
+    assert study(late, market, SESSIONS[T0], SESSIONS).status == "insufficient_history"
+    # Bars that stop before the window (not fetched yet) mean pending, not missing.
+    behind = {d: p for d, p in stock.items() if d <= SESSIONS[T0 - 10]}
+    assert study(behind, market, SESSIONS[T0], SESSIONS).status == "pending"
+    assert study({}, market, SESSIONS[T0], SESSIONS).status == "pending"
 
 
 def edge(src: str, dst: str) -> Edge:
@@ -112,3 +117,8 @@ def test_study_event_covers_the_hub_and_its_suppliers(db: psycopg.Connection) ->
     ]
     # Complete studies stay as they are; the others are recomputed.
     assert study_event(db, "8k-1", "H", accepted, SESSIONS) == 2
+    # Once T -> S is gone, T's open study goes too; complete ones stay.
+    replace_edges(db, [edge("S", "H"), edge("N", "H")])
+    study_event(db, "8k-1", "H", accepted, SESSIONS)
+    ciks = db.execute("SELECT cik FROM event_studies ORDER BY cik").fetchall()
+    assert ciks == [("H",), ("N",), ("S",)]
