@@ -41,7 +41,6 @@ class Candidate:
 
 @dataclass(frozen=True)
 class Resolution:
-    label: str
     kind: MatchKind
     candidates: tuple[Candidate, ...]
 
@@ -93,7 +92,7 @@ def resolve(label: str, hubs: list[Hub]) -> Resolution:
     key = _key(clean_label(label))
     for hub in hubs:
         if key in {_key(n) for n in (hub.name, *hub.aliases)}:
-            return Resolution(label, MatchKind.ALIAS_EXACT, (Candidate(hub, 100.0),))
+            return Resolution(MatchKind.ALIAS_EXACT, (Candidate(hub, 100.0),))
     cands = tuple(top_candidates(label, hubs))
     top = cands[0].score if cands else 0.0
     if top >= FUZZY_MIN:
@@ -102,4 +101,4 @@ def resolve(label: str, hubs: list[Hub]) -> Resolution:
         kind = MatchKind.NEAR_MISS
     else:
         kind = MatchKind.NONE
-    return Resolution(label, kind, cands)
+    return Resolution(kind, cands)
