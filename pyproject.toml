@@ -15,6 +15,7 @@ dependencies = [
     "httpx2>=2.16.0",
     "langchain-ollama>=1.1.0",
     "langgraph>=1.2.19,<2",
+    "langgraph-checkpoint-aws>=1.2.6,<2",
     "numpy>=2.5.4",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.2",
@@ -56,4 +57,13 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 # bm25s ships no type information.
 module = ["bm25s", "bm25s.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Annotated source without a py.typed marker; boto3 ships no types at all.
+module = ["langgraph_checkpoint_aws", "langgraph_checkpoint_aws.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*"]
 ignore_missing_imports = true

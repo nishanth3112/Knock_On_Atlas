@@ -14,8 +14,11 @@ from knock_on_atlas.config import Settings, get_settings
 from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.retrieval.bm25 import tokenize
 from knock_on_atlas.retrieval.embed import DIM
+from knock_on_atlas.workflow.checkpoints import dynamodb_saver
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+# docker-compose and CI both publish DynamoDB Local here.
+DYNAMODB_LOCAL = "http://127.0.0.1:8002"
 SEC_FIXTURES = Path(__file__).parent / "fixtures" / "sec"
 
 
@@ -100,6 +103,17 @@ def db() -> Iterator[psycopg.Connection]:
             yield conn
         finally:
             conn.execute(f"DROP SCHEMA {schema} CASCADE")
+
+
+@pytest.fixture
+def checkpoint_table() -> Iterator[str]:
+    """A fresh checkpoint table in DynamoDB Local, deleted afterwards."""
+    table = f"test-{uuid.uuid4().hex}"
+    saver = dynamodb_saver(DYNAMODB_LOCAL, table)  # creates the table
+    try:
+        yield table
+    finally:
+        saver.client.delete_table(TableName=table)
 
 
 class FakeEmbedder:
