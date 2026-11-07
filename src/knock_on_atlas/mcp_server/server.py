@@ -142,13 +142,18 @@ def build_server(
             ),
         )
 
-    def get_filing_section(accession: str, section: str, page: int = 0) -> Section:
-        """One page (a stored chunk) of an indexed 10-K or 10-Q section."""
+    def get_filing_section(
+        accession: str, section: str, ciks: list[str], page: int = 0
+    ) -> Section:
+        """One page (a stored chunk) of an indexed 10-K or 10-Q section of `ciks`."""
+        if not ciks:
+            raise ToolError("reading a section needs at least one CIK")
         rows = conn.execute(
             "SELECT c.id, c.content, d.url FROM document_chunks c"
             " JOIN documents d ON d.id = c.document_id"
-            " WHERE d.accession = %s AND d.section = %s ORDER BY c.ord",
-            (accession, section),
+            " WHERE d.accession = %s AND d.section = %s AND d.cik = ANY(%s)"
+            " ORDER BY c.ord",
+            (accession, section, ciks),
         ).fetchall()
         if not 0 <= page < len(rows):
             raise ToolError(f"{accession} {section} has {len(rows)} pages")

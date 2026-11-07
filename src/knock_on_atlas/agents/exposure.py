@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from knock_on_atlas.agents.loop import AgentTool, NoArgs, run_agent, scoped_cik_args
-from knock_on_atlas.workflow.budgets import SYNTHESIS_RESERVE_TOKENS
+from knock_on_atlas.workflow.budgets import branch_limit
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import ExposureEdge, KOAState, Usage
 
@@ -65,7 +65,7 @@ async def exposure_analyst(state: KOAState, deps: Deps) -> dict[str, Any]:
         deps.call_tool,
         state.get("usage", Usage()),
         state["deadline"],
-        SYNTHESIS_RESERVE_TOKENS,
+        limit=branch_limit(state.get("usage", Usage()), branches=2),
     )
     notes = {
         n.supplier_cik: n.note for n in (run.output.exposures if run.output else [])
