@@ -17,6 +17,11 @@ class JevRoute(StrEnum):
     OFF = "off"
 
 
+class Checkpointer(StrEnum):
+    MEMORY = "memory"
+    DYNAMODB = "dynamodb"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -24,6 +29,8 @@ class Settings(BaseSettings):
 
     llm_provider: LLMProvider = LLMProvider.OLLAMA
     jev_route: JevRoute = JevRoute.TYPESAFE
+    # memory dies with the process; dynamodb lets a run resume in another one.
+    checkpointer: Checkpointer = Checkpointer.MEMORY
 
     database_url: SecretStr = SecretStr("postgresql://koa:koa@localhost:5432/koa")
     # None in AWS, where boto3 resolves the real DynamoDB endpoint.
