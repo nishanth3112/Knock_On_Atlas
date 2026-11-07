@@ -11,8 +11,10 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U koa -d koa"]
-      interval: 5s
-      timeout: 3s
+      # A check killed at its timeout takes a backend down with SIGPIPE, and Postgres
+      # then restarts every connection; under load pg_isready can take seconds.
+      interval: 10s
+      timeout: 30s
       retries: 10
 
   dynamodb:
