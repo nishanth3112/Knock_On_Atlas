@@ -1,0 +1,63 @@
+{
+ "cik": "0000037996",
+ "name": "FORD MOTOR CO",
+ "tickers": [
+  "F",
+  "F-PB",
+  "F-PC",
+  "F-PD"
+ ],
+ "filings": {
+  "recent": {
+   "accessionNumber": [
+    "0000037996-25-000238"
+   ],
+   "filingDate": [
+    "2025-12-15"
+   ],
+   "reportDate": [
+    "2025-12-09"
+   ],
+   "acceptanceDateTime": [
+    "2025-12-15T21:07:14.000Z"
+   ],
+   "act": [
+    "34"
+   ],
+   "form": [
+    "8-K"
+   ],
+   "fileNumber": [
+    "001-03950"
+   ],
+   "filmNumber": [
+    "251571633"
+   ],
+   "items": [
+    "2.06,7.01,9.01"
+   ],
+   "core_type": [
+    "XBRL"
+   ],
+   "size": [
+    2654941
+   ],
+   "isXBRL": [
+    1
+   ],
+   "isInlineXBRL": [
+    1
+   ],
+   "isXBRLNumeric": [
+    null
+   ],
+   "primaryDocument": [
+    "f-20251209.htm"
+   ],
+   "primaryDocDescription": [
+    "8-K"
+   ]
+  },
+  "files": []
+ }
+}
