@@ -135,6 +135,12 @@ def test_researcher_first_search_is_scoped_to_the_planner_ciks(
         call("search_filings", query="Ford share of revenue", ciks=[OUTSIDER]),
         call("get_price_series", ticker="THRM"),
         call("list_filings", cik=OUTSIDER, since="2025-01-01"),
+        call(
+            "get_filing_section",
+            accession="0000012345-25-000001",
+            section="item_1",
+            ciks=[OUTSIDER],
+        ),
         submit,
     )
     update = run_node(db, server, llm, evidence_researcher)
@@ -144,7 +150,11 @@ def test_researcher_first_search_is_scoped_to_the_planner_ciks(
     )
     assert first_search["ciks"] == [SUPPLIER]
     assert first_search["as_of"] == "2026-01-02"
-    assert [name for name, _ in recorder.calls] == ["search_filings"]
+    assert [name for name, _ in recorder.calls] == [
+        "search_filings",
+        "get_filing_section",
+    ]
+    assert recorder.calls[1][1]["ciks"] == [SUPPLIER]
     # Only the quote from a passage the agent was shown, for a supplier in scope.
     assert [(e.supplier_cik, e.quote) for e in update["evidence"]] == [
         (SUPPLIER, QUOTE)

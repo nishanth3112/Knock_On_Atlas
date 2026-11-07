@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from knock_on_atlas.agents.loop import run_agent
 from knock_on_atlas.graph_store.traversal import exposure
 from knock_on_atlas.market.calendar import EASTERN
-from knock_on_atlas.workflow.budgets import SYNTHESIS_RESERVE_TOKENS
+from knock_on_atlas.workflow.budgets import BEFORE_BRIEF
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import KOAState, Plan, Supplier, Usage
 
@@ -67,7 +67,7 @@ async def planner(state: KOAState, deps: Deps) -> dict[str, Any]:
         deps.call_tool,
         state.get("usage", Usage()),
         state["deadline"],
-        SYNTHESIS_RESERVE_TOKENS,
+        limit=BEFORE_BRIEF,
     )
     # Without the model's queries, the plain question still finds disclosures.
     fallback = [f"{state['hub_name']} percentage of net sales revenue customer"]

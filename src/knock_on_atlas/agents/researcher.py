@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, create_model
 
 from knock_on_atlas.agents.loop import AgentTool, run_agent, scoped_cik_args
-from knock_on_atlas.workflow.budgets import SYNTHESIS_RESERVE_TOKENS
+from knock_on_atlas.workflow.budgets import branch_limit
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import Evidence, KOAState, Usage
 
@@ -68,11 +68,8 @@ async def evidence_researcher(state: KOAState, deps: Deps) -> dict[str, Any]:
     plan = state["plan"]
     report = state.get("verification")
     # A verifier loop re-researches only the suppliers whose evidence failed.
-    ciks = (
-        report.failed_suppliers
-        if report and report.failed_suppliers
-        else plan.supplier_ciks
-    )
+    retry = report is not None and bool(report.failed_suppliers)
+    ciks = report.failed_suppliers if report and retry else plan.supplier_ciks
     tools = [
         AgentTool(
             "search_filings",
@@ -81,7 +78,10 @@ async def evidence_researcher(state: KOAState, deps: Deps) -> dict[str, Any]:
             fixed={"ciks": ciks, "as_of": plan.as_of.isoformat(), "k": SEARCH_HITS},
         ),
         AgentTool(
-            "get_filing_section", "Read one page of a filing section.", SectionPage
+            "get_filing_section",
+            "Read one page of a filing section.",
+            SectionPage,
+            fixed={"ciks": ciks},
         ),
         AgentTool(
             "list_filings", "A supplier's recent filings.", list_filings_args(ciks)
@@ -93,7 +93,7 @@ async def evidence_researcher(state: KOAState, deps: Deps) -> dict[str, Any]:
         f"Suppliers (CIK): {', '.join(ciks)}\n"
         f"Start with these queries: {'; '.join(plan.queries)}"
     )
-    if report and report.failed_suppliers:
+    if retry:
         task += "\nEarlier quotes for these suppliers failed verification."
     run = await run_agent(
         deps.models.reason,
@@ -104,7 +104,8 @@ async def evidence_researcher(state: KOAState, deps: Deps) -> dict[str, Any]:
         deps.call_tool,
         state.get("usage", Usage()),
         state["deadline"],
-        SYNTHESIS_RESERVE_TOKENS,
+        # Alongside the analyst on the first pass; alone on a verifier retry.
+        limit=branch_limit(state.get("usage", Usage()), branches=1 if retry else 2),
     )
     urls = seen_chunks(run.calls)
     # A quote can only cite a passage this run was shown, for a supplier in scope.

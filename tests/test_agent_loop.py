@@ -9,10 +9,10 @@ from pydantic import BaseModel
 
 from knock_on_atlas.agents.loop import AgentTool, run_agent
 from knock_on_atlas.workflow.budgets import (
+    BEFORE_BRIEF,
     MAX_LLM_CALLS,
-    MAX_TOKENS,
     MAX_TOOL_CALLS,
-    SYNTHESIS_RESERVE_TOKENS,
+    branch_limit,
     exhausted,
 )
 from knock_on_atlas.workflow.state import Usage
@@ -120,8 +120,21 @@ def test_agent_stops_when_the_budget_is_spent() -> None:
 
 
 def test_agents_before_the_brief_leave_its_reserve() -> None:
-    near_end = Usage(tokens=MAX_TOKENS - SYNTHESIS_RESERVE_TOKENS)
+    near_end = Usage(tokens=BEFORE_BRIEF.tokens)
     assert exhausted(near_end, later()) is None  # the synthesizer may still run
-    assert "tokens" in str(
-        exhausted(near_end, later(), reserve=SYNTHESIS_RESERVE_TOKENS)
-    )
+    assert "tokens" in str(exhausted(near_end, later(), limit=BEFORE_BRIEF))
+    two_left = Usage(llm_calls=BEFORE_BRIEF.llm_calls)
+    assert "LLM calls" in str(exhausted(two_left, later(), limit=BEFORE_BRIEF))
+
+
+def test_parallel_branches_split_what_is_left() -> None:
+    spent = Usage(llm_calls=2, tool_calls=4, tokens=5_000)
+    each = branch_limit(spent, branches=2)
+    # Two branches that each reach their ceiling together reach BEFORE_BRIEF.
+    for field in ("llm_calls", "tool_calls", "tokens"):
+        total = getattr(spent, field) + 2 * (
+            getattr(each, field) - getattr(spent, field)
+        )
+        assert total <= getattr(BEFORE_BRIEF, field)
+    # Alone (a verifier retry), a branch may use everything left before the brief.
+    assert branch_limit(spent, branches=1) == BEFORE_BRIEF

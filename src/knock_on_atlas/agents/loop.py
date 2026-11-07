@@ -15,7 +15,7 @@ from langchain_core.messages import (
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import AfterValidator, BaseModel, Field, ValidationError, create_model
 
-from knock_on_atlas.workflow.budgets import exhausted
+from knock_on_atlas.workflow.budgets import RUN_LIMIT, exhausted
 from knock_on_atlas.workflow.state import Usage
 
 # Filing text is written by issuers, so it is data, never instructions (spec §19).
@@ -68,7 +68,7 @@ async def run_agent[T: BaseModel](
     call_tool: ToolCaller,
     spent: Usage,
     deadline: float,
-    reserve: int = 0,
+    limit: Usage = RUN_LIMIT,
 ) -> AgentRun[T]:
     """Run until the model calls `submit` with a valid `output`, or the budget ends."""
     specs = [tool_spec(t.name, t.description, t.args) for t in tools]
@@ -81,7 +81,7 @@ async def run_agent[T: BaseModel](
     ]
     run: AgentRun[T] = AgentRun(None, Usage(), [])
     while True:
-        if why := exhausted(spent + run.usage, deadline, reserve=reserve):
+        if why := exhausted(spent + run.usage, deadline, limit=limit):
             run.error = why
             return run
         reply = await bound.ainvoke(messages)
@@ -106,7 +106,7 @@ async def run_agent[T: BaseModel](
                     content = f"submit rejected: {error}"
             elif name not in allowed:
                 content = f"tool {name} is not available to you"
-            elif why := exhausted(spent + run.usage, deadline, tool=True):
+            elif why := exhausted(spent + run.usage, deadline, tool=True, limit=limit):
                 run.error = why
                 return run
             else:

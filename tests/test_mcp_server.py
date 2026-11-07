@@ -136,9 +136,17 @@ def test_tools_read_companies_edges_facts_and_search(server: FastMCP) -> None:
         server,
         ALL_SCOPES,
         "get_filing_section",
-        {"accession": "0000012345-25-000001", "section": "item_1"},
+        {"accession": "0000012345-25-000001", "section": "item_1", "ciks": [SUPPLIER]},
     )
     assert page["chunk_id"] == hits[0]["chunk_id"] and page["pages"] == 1
+    # A section is only readable for the companies in scope, like search.
+    with pytest.raises(ToolError, match="0 pages"):
+        call(
+            server,
+            ALL_SCOPES,
+            "get_filing_section",
+            {"accession": "0000012345-25-000001", "section": "item_1", "ciks": [FORD]},
+        )
 
 
 def test_8k_items_read_the_filing_and_its_exhibit(server: FastMCP) -> None:
