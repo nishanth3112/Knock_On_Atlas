@@ -9,12 +9,14 @@ from fakes import call
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
+from pydantic import BaseModel
 from test_mcp_server import ALL_SCOPES, FORD, FORD_8K, SECRET, SUPPLIER, seeded_server
 
 from knock_on_atlas.agents.llm import FakeChatModel, Models
 from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_token
 from knock_on_atlas.retrieval.embed import Embedder
+from knock_on_atlas.workflow import state as state_module
 from knock_on_atlas.workflow.budgets import (
     MAX_LLM_CALLS,
     MAX_TOKENS,
@@ -23,6 +25,7 @@ from knock_on_atlas.workflow.budgets import (
 )
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.graph import (
+    STATE_MODELS,
     build_graph,
     checkpoint_serde,
     run_config,
@@ -139,3 +142,13 @@ def test_a_run_carries_its_wall_clock() -> None:
     slow = start("r", FORD, FORD_8K, wall_clock=900)
     assert slow["wall_clock"] == 900
     assert 899 < slow["deadline"] - time.time() <= 900
+
+
+def test_checkpoints_may_revive_every_state_model() -> None:
+    # A model missing here would be refused when a paused run is resumed.
+    models = {
+        obj
+        for obj in vars(state_module).values()
+        if isinstance(obj, type) and issubclass(obj, BaseModel) and obj is not BaseModel
+    }
+    assert models <= set(STATE_MODELS)
