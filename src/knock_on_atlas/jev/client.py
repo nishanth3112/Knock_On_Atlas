@@ -37,7 +37,15 @@ class ChoiceQuestion(BaseModel):
     criteria: dict[str, str | None] = Field(min_length=1, max_length=255)
 
 
-Question = Annotated[NoulQuestion | ChoiceQuestion, Field(discriminator="type")]
+class ScoreQuestion(BaseModel):
+    type: Literal["score"] = "score"
+    instructions: str
+    criteria: list[str] = Field(min_length=2, max_length=10)  # low to high
+
+
+Question = Annotated[
+    NoulQuestion | ChoiceQuestion | ScoreQuestion, Field(discriminator="type")
+]
 
 
 class SystemOneRequest(BaseModel):
@@ -58,6 +66,13 @@ class ChoiceAnswer(BaseModel):
     probabilities: dict[str, float]
 
 
+class ScoreAnswer(BaseModel):
+    type: Literal["score"]
+    score: float  # probability-weighted level position, 0 to len(criteria) - 1
+    confidence: float
+    probabilities: dict[str, float]  # level number as a string
+
+
 class Usage(BaseModel):
     input_tokens: int
     output_tokens: int
@@ -68,7 +83,8 @@ class SystemOneResponse(BaseModel):
     # OpenRouter's generation id; the direct route sends a request id header instead.
     id: str | None = None
     answers: dict[
-        str, Annotated[NoulAnswer | ChoiceAnswer, Field(discriminator="type")]
+        str,
+        Annotated[NoulAnswer | ChoiceAnswer | ScoreAnswer, Field(discriminator="type")],
     ]
     usage: Usage
 
