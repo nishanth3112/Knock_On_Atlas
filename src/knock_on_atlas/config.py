@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     dynamodb_endpoint_url: str | None = None
     # SEC rejects requests without a descriptive User-Agent, so there is no default.
     sec_user_agent: str
+    # Overrides a run's 240 s wall clock (spec §11) on a machine too slow for it;
+    # unset in CI and on AWS.
+    run_wall_clock_seconds: int | None = None
 
     groq_api_key: SecretStr | None = None
     typesafe_api_key: SecretStr | None = None
