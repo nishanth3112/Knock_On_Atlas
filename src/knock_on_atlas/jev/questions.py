@@ -14,6 +14,8 @@ from knock_on_atlas.jev.client import (
     NoulCriteria,
     NoulQuestion,
     Question,
+    ScoreAnswer,
+    ScoreQuestion,
 )
 
 # J3 entity resolution. A companion Noul says whether the label names any candidate
@@ -161,3 +163,118 @@ def relationship_flag(
     if answer.noul >= REL_YES_MIN:
         return None, call
     return ("not_a_customer" if answer.noul <= REL_NO_MAX else "unclear"), call
+
+
+# J1 materiality of a free-text 8-K for the filer's suppliers (spec §12).
+J1 = "j1_materiality"
+J1_MIN = 0.80  # below: MONITOR, never a confident label
+
+
+def materiality_state(filer: str, event: dict[str, Any]) -> dict[str, Any]:
+    state = {"filer": filer, "items": event["items"], "item_text": event["excerpt"]}
+    if event.get("exhibit_excerpt"):
+        state["press_release"] = event["exhibit_excerpt"]
+    return state
+
+
+def materiality_questions() -> dict[str, Question]:
+    return {
+        J1: ChoiceQuestion(
+            instructions="What does the news in this 8-K mean for how much `filer`"
+            " buys from its suppliers?",
+            criteria={
+                "MATERIAL_NEGATIVE": "The filer cuts something its suppliers sell"
+                " into: plant closures, production or program cuts, impairments of"
+                " operations, store closures or lost demand",
+                "MATERIAL_POSITIVE": "The filer expands something its suppliers sell"
+                " into: new plants, higher production, large new contracts, or an"
+                " acquisition that adds operations",
+                "ROUTINE": "Financing, debt or share offerings, dividends, executive"
+                " or board changes, shareholder votes, or other news that leaves"
+                " the filer's purchasing unchanged",
+                "NOT_SUPPLY_CHAIN": "Legal, regulatory, tax or accounting matters, or"
+                " news about the filer's own customers and prices rather than its"
+                " purchases",
+            },
+        )
+    }
+
+
+def materiality(jev: JevClient, state: dict[str, Any]) -> tuple[str, float, JevCall]:
+    call = jev.ask(state, materiality_questions())
+    answer = call.response.answers[J1]
+    if not isinstance(answer, ChoiceAnswer):
+        raise JevError(f"J1 answer has unexpected type: {answer}")
+    return answer.choice, answer.probabilities[answer.choice], call
+
+
+# J4 evidence sufficiency per claim, 0-4 (spec §12); below 3 fails the claim.
+J4_PASS = 3
+J4_LEVELS = [
+    "The quote is about something else and says nothing about the two companies",
+    "The quote mentions the customer or the supplier but not any business between them",
+    "The quote describes business between them but not how much the supplier depends"
+    " on the customer",
+    "The quote says the customer is a major customer of the supplier, without a share"
+    " of revenue",
+    "The quote names the customer and gives its share of the supplier's revenue or"
+    " sales",
+]
+
+
+def sufficiency_questions(
+    claims: dict[str, tuple[str, str, str]],
+) -> dict[str, Question]:
+    """One Score per claim id: (supplier, customer, quote)."""
+    return {
+        claim_id: ScoreQuestion(
+            instructions=f"How well does this quote from {supplier}'s filing support"
+            f" the claim that {customer} is a customer {supplier} depends on?\n"
+            f"Quote: {quote}",
+            criteria=J4_LEVELS,
+        )
+        for claim_id, (supplier, customer, quote) in claims.items()
+    }
+
+
+def sufficiency(
+    jev: JevClient, claims: dict[str, tuple[str, str, str]]
+) -> tuple[dict[str, int], JevCall]:
+    """Each claim's level, the rounded position on the 0-4 scale."""
+    state = {"source": "quotes are from the suppliers' own 10-K and 10-Q filings"}
+    call = jev.ask(state, sufficiency_questions(claims))
+    levels = {}
+    for claim_id in claims:
+        answer = call.response.answers[claim_id]
+        if not isinstance(answer, ScoreAnswer):
+            raise JevError(f"J4 answer has unexpected type: {answer}")
+        levels[claim_id] = round(answer.score)
+    return levels, call
+
+
+# J5 escalation (spec §12), asked only when no rule already sends the brief to review.
+J5 = "j5_escalation"
+J5_MIN = 0.80  # below: human review
+
+
+def escalation_questions() -> dict[str, Question]:
+    return {
+        J5: ChoiceQuestion(
+            instructions="Can the effect of `filing` on `suppliers` be stated from"
+            " `evidence` without a reviewer checking it first?",
+            criteria={
+                "AUTO_PUBLISH": "The filing's news is clear, and the quotes plainly"
+                " show which suppliers sell to the filer",
+                "HUMAN_REVIEW": "The news is ambiguous, unusual or disputed, or the"
+                " quotes only partly show the suppliers' business with the filer",
+            },
+        )
+    }
+
+
+def escalation(jev: JevClient, state: dict[str, Any]) -> tuple[str, float, JevCall]:
+    call = jev.ask(state, escalation_questions())
+    answer = call.response.answers[J5]
+    if not isinstance(answer, ChoiceAnswer):
+        raise JevError(f"J5 answer has unexpected type: {answer}")
+    return answer.choice, answer.probabilities[answer.choice], call
