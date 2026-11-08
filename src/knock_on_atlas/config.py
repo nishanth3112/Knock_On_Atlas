@@ -22,6 +22,11 @@ class Checkpointer(StrEnum):
     DYNAMODB = "dynamodb"
 
 
+class JobQueueKind(StrEnum):
+    LOCAL = "local"
+    SQS = "sqs"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -31,6 +36,9 @@ class Settings(BaseSettings):
     jev_route: JevRoute = JevRoute.TYPESAFE
     # memory dies with the process; dynamodb lets a run resume in another one.
     checkpointer: Checkpointer = Checkpointer.MEMORY
+    # local keeps jobs in the API process; sqs sends them to the worker Lambda.
+    job_queue: JobQueueKind = JobQueueKind.LOCAL
+    job_queue_url: str | None = None
 
     database_url: SecretStr = SecretStr("postgresql://koa:koa@localhost:5432/koa")
     # None in AWS, where boto3 resolves the real DynamoDB endpoint.
