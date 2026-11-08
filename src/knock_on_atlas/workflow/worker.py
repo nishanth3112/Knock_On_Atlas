@@ -2,7 +2,8 @@
 
 Jobs arrive at least once (SQS redelivers after a crash or timeout), so the
 checkpoint, not the job, decides what happens: a run is started only when it has
-no checkpoint, resumed where it stopped, and published idempotently.
+no checkpoint and no reviewer decision, resumed where it stopped, and
+published idempotently.
 """
 
 from typing import Any
@@ -46,7 +47,9 @@ async def handle(job: Job, deps: Deps, saver: BaseCheckpointSaver[Any]) -> Statu
         return await graph.aget_state(config)
 
     if not snapshot.values:
-        snapshot = await run(start(job.analysis_id, job.hub_cik, job.accession))
+        # A decision with no checkpoint (expired, or a wrong id) must not rerun it.
+        if job.decision is None:
+            snapshot = await run(start(job.analysis_id, job.hub_cik, job.accession))
     elif snapshot.interrupts:
         if job.decision is not None:
             snapshot = await run(Command(resume=job.decision))
