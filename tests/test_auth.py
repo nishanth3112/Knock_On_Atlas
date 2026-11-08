@@ -104,9 +104,24 @@ def test_a_token_signed_with_another_secret_is_401(
     assert response.status_code == 401
 
 
-def test_the_api_refuses_to_start_without_a_jwt_secret() -> None:
+def test_the_api_refuses_to_start_without_a_strong_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     with pytest.raises(RuntimeError, match="JWT_SECRET"):
         create_app()
+    # A short HS256 secret can be brute-forced from any issued token.
+    monkeypatch.setenv("JWT_SECRET", "too-short")
+    get_settings.cache_clear()
+    with pytest.raises(RuntimeError, match="32"):
+        create_app()
+
+
+def test_the_api_schema_is_not_published(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = api(db, monkeypatch)
+    assert client.get("/docs").status_code == 404
+    assert client.get("/openapi.json").status_code == 404
 
 
 def test_no_token_is_refused(
