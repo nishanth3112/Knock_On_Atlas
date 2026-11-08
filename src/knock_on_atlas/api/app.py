@@ -36,8 +36,9 @@ Conn = Annotated[psycopg.Connection, Depends(get_conn)]
 
 
 class Login(BaseModel):
-    email: str
-    password: str
+    # Bounded so a huge body is refused before the 64 MiB Argon2 check runs.
+    email: str = Field(max_length=256)
+    password: str = Field(max_length=256)
 
 
 class StartAnalysis(BaseModel):
@@ -50,8 +51,11 @@ class Review(BaseModel):
     note: str = Field(default="", max_length=2000)
 
 
-# Statuses that mean a run for the filing already exists or is under way.
-ACTIVE = ("queued", "paused", "published")
+# A filing with a run in any of these states is not run again: each run can
+# spend paid Jev calls. Only a rejected run may be retried.
+ACTIVE = ("queued", "paused", "published", "ended")
+RUNS_PER_DAY = 5  # per user; one leaked login must not drain the Jev budget
+MIN_SECRET_LENGTH = 32  # a short HS256 secret can be brute-forced from any token
 COLUMNS = "id, status, input, result, created_at, completed_at"
 
 
@@ -64,9 +68,16 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
     if settings.jwt_secret is None:
         raise RuntimeError("JWT_SECRET is required to run the API")
     secret = settings.jwt_secret.get_secret_value()
+    if len(secret) < MIN_SECRET_LENGTH:
+        raise RuntimeError(
+            f"JWT_SECRET must be at least {MIN_SECRET_LENGTH} characters"
+        )
     jobs = queue if queue is not None else queue_from_settings(settings)
     live_gate = gate if gate is not None else gate_from_settings(settings)
-    app = FastAPI(title="Knock-On Atlas")
+    # No public schema: the UI is the only client.
+    app = FastAPI(
+        title="Knock-On Atlas", docs_url=None, redoc_url=None, openapi_url=None
+    )
 
     def current_user(
         credentials: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())],
@@ -119,9 +130,12 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
         body: StartAnalysis, user: Analyst, conn: Conn, response: Response
     ) -> dict[str, Any]:
         with conn.transaction():
-            # Two clicks on the same filing must not start two paid runs.
+            # Two clicks on the same filing must not start two paid runs, and one
+            # user's parallel requests must not slip past the daily cap. Locks are
+            # taken in one order (user, then filing), so they can't deadlock.
+            conn.execute("SELECT pg_advisory_xact_lock(1, %s)", (user.id,))
             conn.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", (body.accession,)
+                "SELECT pg_advisory_xact_lock(2, hashtext(%s))", (body.accession,)
             )
             hub = conn.execute(
                 "SELECT 1 FROM companies WHERE cik = %s AND is_hub", (body.hub_cik,)
@@ -136,6 +150,13 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
             if existing is not None:
                 response.status_code = 200
                 return {"id": str(existing[0]), "status": existing[1]}
+            started = conn.execute(
+                "SELECT count(*) FROM analyses"
+                " WHERE user_id = %s AND created_at > now() - interval '1 day'",
+                (user.id,),
+            ).fetchone()
+            if started is not None and started[0] >= RUNS_PER_DAY:
+                raise HTTPException(429, f"at most {RUNS_PER_DAY} new analyses a day")
             analysis_id = str(uuid.uuid4())
             conn.execute(
                 "INSERT INTO analyses (id, user_id, input, status)"

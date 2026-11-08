@@ -155,3 +155,39 @@ def test_when_live_runs_are_off_only_reading_works(
     assert review.status_code == 503 and queue.jobs == []
     assert client.get("/analyses", headers=ana).status_code == 200
     assert client.get("/health").json() == {"ok": True, "live": False}
+
+
+def test_an_analyst_starts_at_most_five_runs_a_day(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Every run can spend paid Jev calls; one leaked login must not drain them.
+    client, queue = app_with(db, monkeypatch)
+    ana = bearer(client, "ana@example.com")
+    filings = [f"0000037996-25-00{n:04d}" for n in range(6)]
+    for filing in filings[:5]:
+        assert start(client, "ana@example.com", filing)["status"] == "queued"
+    sixth = client.post(
+        "/analyses", json={"hub_cik": HUB, "accession": filings[5]}, headers=ana
+    )
+    assert sixth.status_code == 429 and len(queue.jobs) == 5
+    # Asking for a filing that already has a run is free.
+    assert start(client, "ana@example.com", filings[0])["status"] == "queued"
+    assert start(client, "bo@example.com", filings[5])["status"] == "queued"
+
+
+def test_a_filing_whose_run_ended_is_not_run_again(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, queue = app_with(db, monkeypatch)
+    first = start(client, "ana@example.com")
+    db.execute("UPDATE analyses SET status = 'ended' WHERE id = %s", (first["id"],))
+    again = start(client, "bo@example.com")
+    assert again == {"id": first["id"], "status": "ended"} and len(queue.jobs) == 1
+
+
+def test_oversized_login_fields_are_refused_before_hashing(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, _ = app_with(db, monkeypatch)
+    body = {"email": "ana@example.com", "password": "x" * 10_000}
+    assert client.post("/auth/login", json=body).status_code == 422
