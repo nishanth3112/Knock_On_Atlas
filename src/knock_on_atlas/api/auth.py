@@ -11,7 +11,8 @@ from pydantic import BaseModel
 Role = Literal["analyst", "reviewer", "admin"]
 RANK: dict[Role, int] = {"analyst": 1, "reviewer": 2, "admin": 3}
 TOKEN_TTL_SECONDS = 15 * 60
-# MCP service tokens share HS256; the audience keeps the two from being swapped.
+# MCP service tokens are HS256 too, with audience koa-mcp; neither side accepts
+# the other's tokens.
 AUDIENCE = "koa-api"
 
 _hasher = PasswordHasher()
