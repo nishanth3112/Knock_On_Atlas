@@ -72,9 +72,9 @@ def test_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     get_settings.cache_clear()
 
 
-@pytest.fixture
-def sec_client(tmp_path: Path) -> SecClient:
-    # Serves tests/fixtures/sec/<last URL segment>, recorded from real SEC responses.
+def fixture_sec_client(cache_dir: Path) -> SecClient:
+    """Serves tests/fixtures/sec/<last URL segment>, recorded from real SEC data."""
+
     def respond(request: httpx.Request) -> httpx.Response:
         path = SEC_FIXTURES / request.url.path.rsplit("/", 1)[-1]
         if not path.exists():
@@ -83,9 +83,14 @@ def sec_client(tmp_path: Path) -> SecClient:
 
     return SecClient(
         "Test User test@example.com",
-        tmp_path / "sec_cache",
+        cache_dir,
         transport=httpx.MockTransport(respond),
     )
+
+
+@pytest.fixture
+def sec_client(tmp_path: Path) -> SecClient:
+    return fixture_sec_client(tmp_path / "sec_cache")
 
 
 @pytest.fixture
