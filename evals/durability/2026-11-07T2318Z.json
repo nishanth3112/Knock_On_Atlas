@@ -1,0 +1,275 @@
+{
+  "built_at": "2026-11-07T2318Z",
+  "workload": "Ford 8-K fixture, 1 supplier, scripted fake LLM, Jev off, DynamoDB Local 3.3.2 (amazon/dynamodb-local), one process per delivery",
+  "baseline_llm_calls": 6,
+  "crash_scenarios": 9,
+  "resume_rate": 1.0,
+  "llm_calls_rerun": 7,
+  "duplicate_briefs": 0,
+  "checkpoint_writes": {
+    "checkpoint": {
+      "count": 108,
+      "bytes": {
+        "p50": 5637.0,
+        "p95": 17014.0,
+        "max": 17144
+      },
+      "ms": {
+        "p50": 7.5,
+        "p95": 27.5,
+        "max": 205.1
+      }
+    },
+    "writes": {
+      "count": 135,
+      "bytes": {
+        "p50": 263,
+        "p95": 12828.0,
+        "max": 12828
+      },
+      "ms": {
+        "p50": 17.7,
+        "p95": 72.4,
+        "max": 405.9
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "scenario": "baseline",
+      "deliveries": [
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "triage:after",
+      "deliveries": [
+        [
+          "start",
+          "triage:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "planner:after",
+      "deliveries": [
+        [
+          "start",
+          "planner:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 1,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "exposure_analyst:after",
+      "deliveries": [
+        [
+          "start",
+          "exposure_analyst:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 3,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "evidence_researcher:after",
+      "deliveries": [
+        [
+          "start",
+          "evidence_researcher:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 2,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "event_study:before",
+      "deliveries": [
+        [
+          "start",
+          "event_study:before"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "verifier:after",
+      "deliveries": [
+        [
+          "start",
+          "verifier:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "risk_gate:after",
+      "deliveries": [
+        [
+          "start",
+          "risk_gate:after"
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "brief_synthesizer:after",
+      "deliveries": [
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          "brief_synthesizer:after"
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 1,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "publish:after",
+      "deliveries": [
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          "publish:after"
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "paused job redelivered",
+      "deliveries": [
+        [
+          "start",
+          null
+        ],
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    },
+    {
+      "scenario": "finished job redelivered",
+      "deliveries": [
+        [
+          "start",
+          null
+        ],
+        [
+          "review",
+          null
+        ],
+        [
+          "review",
+          null
+        ]
+      ],
+      "resumed": true,
+      "llm_calls_rerun": 0,
+      "brief_versions": 1
+    }
+  ]
+}
