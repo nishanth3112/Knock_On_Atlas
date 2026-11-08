@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from knock_on_atlas.api.app import create_app, get_conn
 from knock_on_atlas.api.auth import AUDIENCE, Role, hash_password
+from knock_on_atlas.api.demo import LiveGate
+from knock_on_atlas.api.jobs import JobQueue
 from knock_on_atlas.config import get_settings
 from knock_on_atlas.db.migrate import migrate
 
@@ -14,12 +16,17 @@ SECRET = "test-api-secret-at-least-32-bytes!!"
 PASSWORD = "correct horse battery"
 
 
-def api(db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def api(
+    db: psycopg.Connection,
+    monkeypatch: pytest.MonkeyPatch,
+    queue: JobQueue | None = None,
+    gate: LiveGate | None = None,
+) -> TestClient:
     """The real app on the test schema, with a known signing secret."""
     monkeypatch.setenv("JWT_SECRET", SECRET)
     get_settings.cache_clear()  # the db fixture already read the settings
     migrate(db)
-    app = create_app()
+    app = create_app(queue, gate)
     app.dependency_overrides[get_conn] = lambda: db
     return TestClient(app)
 
