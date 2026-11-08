@@ -130,8 +130,6 @@ class KOAState(TypedDict, total=False):
     hub_cik: str
     hub_name: str
     accession: str
-    deadline: float  # epoch seconds (time.time()): it must survive a resume elsewhere
-    wall_clock: float  # the run's time budget in seconds
     event: EightK
     triage: Triage
     plan: Plan

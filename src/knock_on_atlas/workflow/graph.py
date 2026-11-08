@@ -1,7 +1,6 @@
 """The analysis graph (spec §11.3): triage, plan, three parallel branches, verify,
 gate, review, brief."""
 
-import time
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
@@ -27,7 +26,7 @@ from knock_on_atlas.agents.verifier import route_after_verify, verifier
 from knock_on_atlas.market.calendar import sessions
 from knock_on_atlas.market.event_study import study_event
 from knock_on_atlas.mcp_server.server import EightK
-from knock_on_atlas.workflow.budgets import RECURSION_LIMIT, WALL_CLOCK_SECONDS
+from knock_on_atlas.workflow.budgets import RECURSION_LIMIT
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import (
     Claim,
@@ -95,7 +94,10 @@ def build_graph(
 ) -> CompiledStateGraph[Any]:
     def bind(node: Node) -> StateNode:
         async def run(state: KOAState) -> dict[str, Any]:
-            return await node(state, deps)
+            deps.crash(f"{node.__name__}:before")
+            update = await node(state, deps)
+            deps.crash(f"{node.__name__}:after")
+            return update
 
         return run
 
@@ -145,15 +147,11 @@ def checkpoint_serde() -> JsonPlusSerializer:
     return JsonPlusSerializer(allowed_msgpack_modules=allowed)
 
 
-def start(
-    run_id: str, hub_cik: str, accession: str, wall_clock: float = WALL_CLOCK_SECONDS
-) -> KOAState:
+def start(run_id: str, hub_cik: str, accession: str) -> KOAState:
     return {
         "run_id": run_id,
         "hub_cik": hub_cik,
         "accession": accession,
-        "deadline": time.time() + wall_clock,
-        "wall_clock": wall_clock,
         "loops": 0,
         "usage": Usage(),
     }

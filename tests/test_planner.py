@@ -1,5 +1,4 @@
 import asyncio
-import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -36,7 +35,6 @@ def plan_with(db: psycopg.Connection, llm: Any) -> dict[str, Any]:
         "hub_cik": HUB,
         "hub_name": "Ford Motor Co",
         "event": EVENT,
-        "deadline": time.time() + 60,
     }
     deps = Deps(db, Models(llm, llm, llm), None, no_tools)
     return asyncio.run(planner(state, deps))

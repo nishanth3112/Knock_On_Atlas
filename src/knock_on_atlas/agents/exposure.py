@@ -64,7 +64,7 @@ async def exposure_analyst(state: KOAState, deps: Deps) -> dict[str, Any]:
         Notes,
         deps.call_tool,
         state.get("usage", Usage()),
-        state["deadline"],
+        deps.deadline,
         limit=branch_limit(state.get("usage", Usage()), branches=2),
     )
     notes = {

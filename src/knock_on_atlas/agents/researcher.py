@@ -103,7 +103,7 @@ async def evidence_researcher(state: KOAState, deps: Deps) -> dict[str, Any]:
         Found,
         deps.call_tool,
         state.get("usage", Usage()),
-        state["deadline"],
+        deps.deadline,
         # Alongside the analyst on the first pass; alone on a verifier retry.
         limit=branch_limit(state.get("usage", Usage()), branches=1 if retry else 2),
     )

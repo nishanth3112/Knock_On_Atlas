@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 from collections.abc import Awaitable, Callable
 from datetime import date
 from typing import Any
@@ -50,7 +49,6 @@ def state() -> KOAState:
     return {
         "hub_cik": FORD,
         "hub_name": "Ford Motor Co",
-        "deadline": time.time() + 60,
         "event": EightK(
             cik=FORD,
             accession="0000037996-25-000238",
