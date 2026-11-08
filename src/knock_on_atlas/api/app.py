@@ -142,9 +142,13 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
             ).fetchone()
             if hub is None:
                 raise HTTPException(422, "hub_cik is not a hub customer")
+            # A queued row an hour old lost its job (API restart, demo switched
+            # off), since runs start within minutes: it no longer blocks a new run.
             existing = conn.execute(
                 "SELECT id, status FROM analyses WHERE input->>'accession' = %s"
-                " AND status = ANY(%s) ORDER BY created_at DESC LIMIT 1",
+                " AND status = ANY(%s) AND NOT (status = 'queued'"
+                " AND created_at < now() - interval '1 hour')"
+                " ORDER BY created_at DESC LIMIT 1",
                 (body.accession, list(ACTIVE)),
             ).fetchone()
             if existing is not None:

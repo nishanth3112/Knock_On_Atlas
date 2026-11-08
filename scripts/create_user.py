@@ -18,8 +18,8 @@ parser.add_argument("email")
 parser.add_argument("role", choices=list(RANK))
 args = parser.parse_args()
 password = getpass.getpass("password: ")
-if len(password) < 12:
-    parser.error("use a password of at least 12 characters")
+if not 12 <= len(password) <= 256:  # login refuses longer ones
+    parser.error("use a password of 12 to 256 characters")
 
 url = get_settings().database_url.get_secret_value()
 with psycopg.connect(url, autocommit=True) as conn:

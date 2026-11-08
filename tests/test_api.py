@@ -185,6 +185,20 @@ def test_a_filing_whose_run_ended_is_not_run_again(
     assert again == {"id": first["id"], "status": "ended"} and len(queue.jobs) == 1
 
 
+def test_a_run_queued_an_hour_ago_no_longer_blocks_its_filing(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, queue = app_with(db, monkeypatch)
+    first = start(client, "ana@example.com")
+    db.execute(
+        "UPDATE analyses SET created_at = now() - interval '61 minutes' WHERE id = %s",
+        (first["id"],),
+    )
+    again = start(client, "bo@example.com")
+    assert again["status"] == "queued" and again["id"] != first["id"]
+    assert len(queue.jobs) == 2
+
+
 def test_oversized_login_fields_are_refused_before_hashing(
     db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
 ) -> None:
