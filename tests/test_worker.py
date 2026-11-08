@@ -8,7 +8,14 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from test_graph import role_responder
-from test_mcp_server import ALL_SCOPES, FORD, FORD_8K, SECRET, seeded_server
+from test_mcp_server import (
+    ALL_SCOPES,
+    FORD,
+    FORD_8K,
+    SECRET,
+    SUPPLIER,
+    seeded_server,
+)
 
 from knock_on_atlas.agents.llm import FakeChatModel, Models
 from knock_on_atlas.edgar.client import SecClient
@@ -79,7 +86,10 @@ def worker(
 def test_redelivered_jobs_never_rerun_finished_work(worker: Worker) -> None:
     first = Calls()
     assert worker.run(first) == "paused"
-    assert worker.row() == ("paused", None)
+    status, request = worker.row()
+    # The reviewer reads why it paused and what to approve from the row itself.
+    assert status == "paused" and request["exposures"][0]["supplier_cik"] == SUPPLIER
+    assert request["reasons"]
 
     # The same start job again: the run is waiting for a reviewer, so nothing runs.
     again = Calls()

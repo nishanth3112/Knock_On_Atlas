@@ -57,12 +57,17 @@ async def handle(job: Job, deps: Deps, saver: BaseCheckpointSaver[Any]) -> Statu
         snapshot = await run(None)  # crashed mid-run: continue from the checkpoint
     status = outcome(snapshot)
     brief = snapshot.values.get("brief")
+    if status == "paused":
+        # What the reviewer decides on, so the API never reads checkpoints.
+        result = snapshot.interrupts[0].value
+    else:
+        result = brief.model_dump(mode="json") if brief is not None else None
     publish(
         deps.conn,
         job.analysis_id,
         job.model_dump(include={"hub_cik", "accession"}),
         status,
-        brief.model_dump(mode="json") if brief is not None else None,
+        result,
     )
     deps.crash("publish:after")  # published, but the job is not yet acknowledged
     return status
