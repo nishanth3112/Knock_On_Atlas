@@ -1,10 +1,13 @@
 """Run one 8-K analysis locally and write evals/runs/<UTC timestamp>.json.
 
 Chat models from LLM_PROVIDER (ollama), Jev from JEV_ROUTE (every call logged in
-jev_calls), and edgar-intel in-process over HTTP with a scoped token. With
---approve, a run paused for human review is resumed as approved.
+jev_calls), and edgar-intel in-process over HTTP with a scoped token. The run goes
+through the worker with CHECKPOINTER's saver; with CHECKPOINTER=dynamodb, rerunning
+with the same --analysis-id resumes it like a redelivered job. With --approve, a
+run paused for human review is resumed as approved.
 
-Usage: uv run python scripts/run_analysis.py <hub_cik> <accession> [--approve]
+Usage: uv run python scripts/run_analysis.py <hub_cik> <accession>
+       [--approve] [--analysis-id UUID]
 """
 
 import argparse
@@ -18,8 +21,6 @@ from pathlib import Path
 from typing import Any
 
 import psycopg
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.types import Command
 
 from knock_on_atlas.agents.llm import models_from_settings
 from knock_on_atlas.config import get_settings
@@ -29,13 +30,10 @@ from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_t
 from knock_on_atlas.mcp_server.server import TOOL_SCOPES, build_server
 from knock_on_atlas.retrieval.embed import BgeEmbedder
 from knock_on_atlas.workflow import budgets
+from knock_on_atlas.workflow.checkpoints import checkpointer
 from knock_on_atlas.workflow.deps import Deps
-from knock_on_atlas.workflow.graph import (
-    build_graph,
-    checkpoint_serde,
-    run_config,
-    start,
-)
+from knock_on_atlas.workflow.graph import build_graph, run_config
+from knock_on_atlas.workflow.worker import Job, handle
 
 OUT_DIR = Path("evals/runs")
 
@@ -43,6 +41,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("hub_cik")
 parser.add_argument("accession")
 parser.add_argument("--approve", action="store_true")
+parser.add_argument("--analysis-id", default=str(uuid.uuid4()))
 args = parser.parse_args()
 settings = get_settings()
 wall_clock = settings.run_wall_clock_seconds or budgets.WALL_CLOCK_SECONDS
@@ -61,21 +60,27 @@ async def main() -> dict[str, Any]:
         token = service_token(secret, set(TOOL_SCOPES.values()), "local-worker", ttl)
         async with local_client(server, token) as client:
             jev = jev_from_settings(settings)
-            deps = Deps(conn, models_from_settings(settings), jev, mcp_caller(client))
-            graph = build_graph(deps, InMemorySaver(serde=checkpoint_serde()))
-            run_id = str(uuid.uuid4())
-            config = run_config(run_id)
-            began = time.time()
-            result = await graph.ainvoke(
-                start(run_id, args.hub_cik, args.accession, wall_clock), config
+            models = models_from_settings(settings)
+            saver = checkpointer(settings)
+            run_id = args.analysis_id
+            job = Job(
+                analysis_id=run_id, hub_cik=args.hub_cik, accession=args.accession
             )
-            paused = "__interrupt__" in result
-            if paused and args.approve:
+
+            def invocation() -> Deps:
+                # A fresh window per delivery, as a worker Lambda would get.
+                deadline = time.time() + wall_clock
+                return Deps(conn, models, jev, mcp_caller(client), deadline=deadline)
+
+            began = time.time()
+            status = await handle(job, invocation(), saver)
+            if status == "paused" and args.approve:
                 decision = {"decision": "approved", "reviewer": "local --approve"}
-                result = await graph.ainvoke(Command(resume=decision), config)
-                paused = "__interrupt__" in result
+                job = job.model_copy(update={"decision": decision})
+                status = await handle(job, invocation(), saver)
             seconds = round(time.time() - began, 1)
-            values = (await graph.aget_state(config)).values
+            graph = build_graph(invocation(), saver)
+            values = (await graph.aget_state(run_config(run_id))).values
 
     def dump(key: str) -> Any:
         value = values.get(key)
@@ -92,9 +97,7 @@ async def main() -> dict[str, Any]:
         "accession": args.accession,
         "llm_provider": settings.llm_provider.value,
         "jev_route": settings.jev_route.value,
-        "status": "paused"
-        if paused
-        else ("published" if "brief" in values else "ended"),
+        "status": status,
         "seconds": seconds,
         "wall_clock_limit": wall_clock,
         "usage": usage.model_dump(),

@@ -137,11 +137,15 @@ def test_a_material_8k_ends_in_a_cited_brief_within_budget(
     assert final.get("errors", []) == []
 
 
-def test_a_run_carries_its_wall_clock() -> None:
-    assert start("r", FORD, FORD_8K)["wall_clock"] == WALL_CLOCK_SECONDS
-    slow = start("r", FORD, FORD_8K, wall_clock=900)
-    assert slow["wall_clock"] == 900
-    assert 899 < slow["deadline"] - time.time() <= 900
+def test_each_invocation_gets_its_own_wall_clock() -> None:
+    async def no_tools(name: str, args: dict[str, Any]) -> Any:
+        raise AssertionError
+
+    llm = FakeChatModel(responder=role_responder)
+    # The deadline lives in Deps, not in the checkpoint: a resume starts a new window.
+    assert "deadline" not in start("r", FORD, FORD_8K)
+    deps = Deps(None, Models(llm, llm, llm), None, no_tools)  # type: ignore[arg-type]
+    assert WALL_CLOCK_SECONDS - 1 < deps.deadline - time.time() <= WALL_CLOCK_SECONDS
 
 
 def test_checkpoints_may_revive_every_state_model() -> None:

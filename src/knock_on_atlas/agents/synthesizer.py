@@ -90,7 +90,7 @@ async def brief_synthesizer(state: KOAState, deps: Deps) -> dict[str, Any]:
             ExposureBrief,
             deps.call_tool,
             state.get("usage", Usage()) + usage,
-            state["deadline"],
+            deps.deadline,
         )
         usage += run.usage
         if run.output is None:

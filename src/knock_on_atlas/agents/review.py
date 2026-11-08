@@ -1,13 +1,11 @@
 """Risk gate (rules first, then Jev J5) and the human review interrupt."""
 
-import time
 from typing import Any
 
 from langgraph.graph import END
 from langgraph.types import interrupt
 
 from knock_on_atlas.jev.questions import J5_MIN, escalation
-from knock_on_atlas.workflow.budgets import WALL_CLOCK_SECONDS
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import Gate, KOAState, ReviewDecision
 
@@ -70,11 +68,7 @@ def human_review(state: KOAState) -> dict[str, Any]:
             "failed_suppliers": report.failed_suppliers if report else [],
         }
     )
-    # A reviewer's wait is not compute: the rest of the run gets a fresh window.
-    return {
-        "review": ReviewDecision.model_validate(decision),
-        "deadline": time.time() + state.get("wall_clock", WALL_CLOCK_SECONDS),
-    }
+    return {"review": ReviewDecision.model_validate(decision)}
 
 
 def route_after_review(state: KOAState) -> str:

@@ -66,7 +66,7 @@ async def planner(state: KOAState, deps: Deps) -> dict[str, Any]:
         Queries,
         deps.call_tool,
         state.get("usage", Usage()),
-        state["deadline"],
+        deps.deadline,
         limit=BEFORE_BRIEF,
     )
     # Without the model's queries, the plain question still finds disclosures.

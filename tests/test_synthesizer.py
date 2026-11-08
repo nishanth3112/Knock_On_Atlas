@@ -1,5 +1,4 @@
 import asyncio
-import time
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -29,7 +28,6 @@ QUOTE = "Ford accounted for 22% of our product revenues."
 def state() -> KOAState:
     return {
         "hub_name": "Ford Motor Co",
-        "deadline": time.time() + 60,
         "event": EightK(
             cik=FORD,
             accession="a",
