@@ -16,6 +16,8 @@ from fastmcp.client.transports import StreamableHttpTransport
 from fastmcp.exceptions import ToolError
 
 TOKEN_TTL_SECONDS = 600
+# API logins are HS256 too; the audience keeps them out of the tools.
+AUDIENCE = "koa-mcp"
 
 
 def service_token(
@@ -28,6 +30,7 @@ def service_token(
     claims = {
         "sub": subject,
         "scope": " ".join(sorted(scopes)),
+        "aud": AUDIENCE,
         "iat": now,
         "exp": now + ttl_seconds,
     }

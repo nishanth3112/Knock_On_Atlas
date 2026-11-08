@@ -1,9 +1,11 @@
 import asyncio
 import inspect
 import re
+import time
 from datetime import date
 from typing import Any
 
+import jwt
 import psycopg
 import pytest
 from fastmcp import FastMCP
@@ -197,6 +199,13 @@ def test_a_call_without_a_valid_token_is_rejected(server: FastMCP) -> None:
     expired = service_token(SECRET, ALL_SCOPES, "x", ttl_seconds=-1)
     with pytest.raises(Exception):  # noqa: B017
         asyncio.run(run(expired))
+    # Same secret and scopes but another service's token: an API user's login
+    # (aud koa-api) or a token with no audience must not open the tools.
+    claims = {"sub": "x", "scope": " ".join(ALL_SCOPES), "exp": time.time() + 60}
+    for extra in ({"aud": "koa-api"}, {}):
+        other = jwt.encode({**claims, **extra}, SECRET, algorithm="HS256")
+        with pytest.raises(Exception):  # noqa: B017
+            asyncio.run(run(other))
 
 
 def test_every_tool_is_a_known_read_only_tool(server: FastMCP) -> None:

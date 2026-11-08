@@ -19,6 +19,7 @@ from knock_on_atlas.edgar.filings import html_to_lines, recent_filings
 from knock_on_atlas.edgar.submissions import recent_8ks
 from knock_on_atlas.edgar.tickers import pad_cik
 from knock_on_atlas.graph_store.traversal import Exposure, exposure
+from knock_on_atlas.mcp_server.client import AUDIENCE
 from knock_on_atlas.retrieval.embed import Embedder
 from knock_on_atlas.retrieval.hybrid import Hit, hybrid_search
 
@@ -90,7 +91,8 @@ def build_server(
     conn: psycopg.Connection, sec: SecClient, embedder: Embedder, jwt_secret: str
 ) -> FastMCP:
     mcp = FastMCP(
-        "edgar-intel", auth=JWTVerifier(public_key=jwt_secret, algorithm="HS256")
+        "edgar-intel",
+        auth=JWTVerifier(public_key=jwt_secret, algorithm="HS256", audience=AUDIENCE),
     )
 
     def get_company(cik: str) -> Company:
