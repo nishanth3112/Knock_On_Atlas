@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from functools import lru_cache
 
@@ -39,6 +40,9 @@ class Settings(BaseSettings):
     # local keeps jobs in the API process; sqs sends them to the worker Lambda.
     job_queue: JobQueueKind = JobQueueKind.LOCAL
     job_queue_url: str | None = None
+    # Live runs only before this time: SSM parameter on AWS, a setting locally.
+    demo_live_param: str | None = None
+    demo_live_until: datetime | None = None
 
     database_url: SecretStr = SecretStr("postgresql://koa:koa@localhost:5432/koa")
     # None in AWS, where boto3 resolves the real DynamoDB endpoint.
