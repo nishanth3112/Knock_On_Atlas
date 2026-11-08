@@ -23,7 +23,7 @@ from typing import Any
 import psycopg
 
 from knock_on_atlas.agents.llm import models_from_settings
-from knock_on_atlas.config import get_settings
+from knock_on_atlas.config import Checkpointer, get_settings
 from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.jev.client import jev_from_settings
 from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_token
@@ -41,9 +41,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("hub_cik")
 parser.add_argument("accession")
 parser.add_argument("--approve", action="store_true")
-parser.add_argument("--analysis-id", default=str(uuid.uuid4()))
+parser.add_argument("--analysis-id")
 args = parser.parse_args()
 settings = get_settings()
+if args.analysis_id and settings.checkpointer is Checkpointer.MEMORY:
+    # A memory checkpoint died with the last process: this would rerun from scratch.
+    parser.error("--analysis-id needs CHECKPOINTER=dynamodb to resume a run")
 wall_clock = settings.run_wall_clock_seconds or budgets.WALL_CLOCK_SECONDS
 
 
@@ -62,7 +65,7 @@ async def main() -> dict[str, Any]:
             jev = jev_from_settings(settings)
             models = models_from_settings(settings)
             saver = checkpointer(settings)
-            run_id = args.analysis_id
+            run_id = args.analysis_id or str(uuid.uuid4())
             job = Job(
                 analysis_id=run_id, hub_cik=args.hub_cik, accession=args.accession
             )
