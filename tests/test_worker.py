@@ -116,3 +116,12 @@ def test_a_rejected_review_ends_without_a_brief(worker: Worker) -> None:
     rejected = {"decision": "rejected", "reviewer": "test"}
     assert worker.run(Calls(), rejected) == "rejected"
     assert worker.row() == ("rejected", None)
+
+
+def test_a_decision_for_a_run_without_a_checkpoint_starts_nothing(
+    worker: Worker,
+) -> None:
+    # The checkpoint expired (TTL) or the id is wrong: a review must not rerun it.
+    calls = Calls()
+    assert worker.run(calls, APPROVE) == "ended" and calls.prompts == []
+    assert worker.row() == ("ended", None)
