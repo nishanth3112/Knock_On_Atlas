@@ -54,7 +54,10 @@ function BriefCard({ run, allowed, live, toast }: { run: Analysis; allowed: bool
         {result.usage?.llmCalls ?? 0} model calls so far, {result.evidence?.length ?? 0} passages,{" "}
         {result.exposures?.length ?? 0} suppliers. <a href={`#analysis/${run.id}`}>Read the analysis</a>
       </p>
-      {live ? (
+      {decide.isSuccess ? (
+        // The run stays paused until the worker resumes it, so the list still shows it.
+        <p className="muted small">Decision sent. The run is resuming.</p>
+      ) : live ? (
         <>
           <label className="small" htmlFor={`note-${run.id}`} style={{ display: "block", marginTop: 12, fontWeight: 600 }}>
             Comment (saved with the run)

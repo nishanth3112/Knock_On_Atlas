@@ -7,9 +7,12 @@ export const useAnalysis = (id: string) =>
   useQuery({
     queryKey: ["analyses", id],
     queryFn: () => api.get<Run>(`/analyses/${id}`),
-    // The worker finishes runs in the background; paused ones resume after review.
-    refetchInterval: (q) =>
-      q.state.data?.status === "queued" || q.state.data?.status === "paused" ? 3000 : false,
+    // The worker finishes runs in the background; paused ones wait on a reviewer,
+    // often for hours, so check those less often.
+    refetchInterval: (q) => {
+      const status = q.state.data?.status;
+      return status === "queued" ? 3000 : status === "paused" ? 30_000 : false;
+    },
   });
 
 function jump(n: number) {

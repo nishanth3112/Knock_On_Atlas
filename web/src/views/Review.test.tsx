@@ -43,6 +43,9 @@ test("a reviewer approves a brief with a comment", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Approve and publish" }));
   await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Brief approved. The run resumes from its checkpoint and publishes."));
   expect(calls.find((c) => c.route === "POST /reviews/run-1")?.body).toEqual({ decision: "approved", note: "22% matches" });
+  // Still paused until the worker resumes it, but it can't be decided twice.
+  expect(await screen.findByText("Decision sent. The run is resuming.")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Approve and publish" })).not.toBeInTheDocument();
 });
 
 test("rejecting a brief asks first", async () => {
