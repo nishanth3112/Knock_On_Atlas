@@ -130,7 +130,8 @@ def spread(values: list[float]) -> dict[str, float]:
 
 def report(results: list[dict[str, Any]]) -> dict[str, Any]:
     baseline = results[0]
-    brief = baseline["published"][0][1]
+    # The brief, not the whole row: usage counts the calls a crash made re-run.
+    brief = baseline["published"][0][1]["brief"]
     rows = []
     for r in results:
         planned = sum(c.startswith("You plan research") for c in r["llm_calls"])
@@ -140,7 +141,7 @@ def report(results: list[dict[str, Any]]) -> dict[str, Any]:
                 "deliveries": [list(d) for d in SCENARIOS[r["scenario"]]],
                 # Same brief as the uncrashed run, and not restarted from scratch.
                 "resumed": bool(r["published"])
-                and r["published"][0][1] == brief
+                and r["published"][0][1]["brief"] == brief
                 and planned == (2 if r["scenario"] == "planner:after" else 1),
                 "llm_calls_rerun": len(r["llm_calls"]) - len(baseline["llm_calls"]),
                 # Distinct versions of the published row: 1 means never rewritten.
@@ -182,7 +183,7 @@ def test_every_crash_resumes_to_the_same_single_brief(
 ) -> None:
     seeded_server(db, sec_client, fake_embedder)
     results = [run_scenario(db, checkpoint_table, tmp_path, n) for n in SCENARIOS]
-    assert results[0]["published"][0][1]["claims"]
+    assert results[0]["published"][0][1]["brief"]["claims"]
     assert len(results[0]["llm_calls"]) == 6
     measured = report(results)
     if out := os.environ.get("DURABILITY_REPORT"):

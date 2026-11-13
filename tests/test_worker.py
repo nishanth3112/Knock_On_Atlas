@@ -98,13 +98,16 @@ def test_redelivered_jobs_never_rerun_finished_work(worker: Worker) -> None:
     review = Calls()
     assert worker.run(review, APPROVE) == "published"
     assert [p[:24] for p in review.prompts] == ["You write a short exposu"]
-    status, brief = worker.row()
-    assert status == "published" and brief["claims"][0]["citations"]
+    status, result = worker.row()
+    assert status == "published" and result["brief"]["claims"][0]["citations"]
+    # The UI reads the whole run from the row: what was found and who approved.
+    assert result["exposures"] and result["evidence"] and result["plan"]["as_of"]
+    assert result["review"]["decision"] == "approved"
 
     # The review job redelivered after publishing: no LLM call, the same brief.
     late = Calls()
     assert worker.run(late, APPROVE) == "published" and late.prompts == []
-    assert worker.row() == ("published", brief)
+    assert worker.row() == ("published", result)
 
 
 def test_a_crashed_run_resumes_where_it_stopped(worker: Worker) -> None:
@@ -125,7 +128,9 @@ def test_a_rejected_review_ends_without_a_brief(worker: Worker) -> None:
     worker.run(Calls())
     rejected = {"decision": "rejected", "reviewer": "test"}
     assert worker.run(Calls(), rejected) == "rejected"
-    assert worker.row() == ("rejected", None)
+    status, result = worker.row()
+    assert status == "rejected" and "brief" not in result
+    assert result["review"]["reviewer"] == "test"
 
 
 def test_a_decision_for_a_run_without_a_checkpoint_starts_nothing(
