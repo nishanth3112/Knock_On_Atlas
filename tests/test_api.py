@@ -98,6 +98,21 @@ def test_listing_and_reading_analyses(
 
     one = client.get(f"/analyses/{started['id']}", headers=bo).json()
     assert one["status"] == "queued" and one["input"]["accession"] == FILING
+    assert one["hub_name"] == "Ford Motor Co" and one["event"] is None
+    db.execute(
+        "INSERT INTO events (accession, cik, accepted_at, items, url)"
+        " VALUES (%s, %s, '2025-11-03T21:03:25Z', '{2.05}', 'https://sec.gov/a')",
+        (FILING, HUB),
+    )
+    event = client.get(f"/analyses/{started['id']}", headers=bo).json()["event"]
+    assert event["items"] == ["2.05"] and event["url"] == "https://sec.gov/a"
+
+    # The review queue asks for paused runs only.
+    assert client.get("/analyses?status=paused", headers=bo).json() == []
+    db.execute("UPDATE analyses SET status = 'paused'")
+    paused = client.get("/analyses?status=paused", headers=bo).json()
+    assert [a["id"] for a in paused] == [started["id"]]
+    assert client.get("/analyses?status=nope", headers=bo).status_code == 422
     assert client.get(f"/analyses/{uuid.uuid4()}", headers=bo).status_code == 404
     assert client.get("/analyses/nope", headers=bo).status_code == 422
     assert client.get("/analyses").status_code == 401
@@ -205,3 +220,24 @@ def test_oversized_login_fields_are_refused_before_hashing(
     client, _ = app_with(db, monkeypatch)
     body = {"email": "ana@example.com", "password": "x" * 10_000}
     assert client.post("/auth/login", json=body).status_code == 422
+
+
+def test_the_inbox_lists_filings_newest_first_with_their_run(
+    db: psycopg.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, _ = app_with(db, monkeypatch)
+    older = "0000037996-25-000100"
+    db.execute(
+        "INSERT INTO events (accession, cik, accepted_at, items, url) VALUES"
+        " (%s, %s, '2025-11-03T21:03:25Z', '{2.05,7.01}', 'https://sec.gov/a'),"
+        " (%s, %s, '2025-10-01T12:00:00Z', '{8.01}', 'https://sec.gov/b')",
+        (FILING, HUB, older, HUB),
+    )
+    run = start(client, "ana@example.com")
+    events = client.get("/events", headers=bearer(client, "bo@example.com")).json()
+    assert [e["accession"] for e in events] == [FILING, older]
+    assert events[0]["hub_name"] == "Ford Motor Co"
+    assert events[0]["items"] == ["2.05", "7.01"]
+    assert events[0]["run"] == {"id": run["id"], "status": "queued", "triage": None}
+    assert events[1]["run"] is None
+    assert client.get("/events").status_code == 401
