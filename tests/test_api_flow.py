@@ -73,7 +73,7 @@ def test_start_review_publish(
 
     published = client.get(url, headers=analyst).json()
     assert published["status"] == "published" and published["completed_at"]
-    [claim] = published["result"]["claims"]
+    [claim] = published["result"]["brief"]["claims"]
     assert claim["citations"] and "22%" in claim["text"]
     # Each agent ran once: the review resumed the run, it didn't start over.
     assert len(calls.prompts) == 6

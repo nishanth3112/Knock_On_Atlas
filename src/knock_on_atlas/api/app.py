@@ -2,6 +2,8 @@
 
 import uuid
 from collections.abc import Callable, Iterator
+from dataclasses import asdict
+from datetime import date
 from typing import Annotated, Any, Literal
 
 import jwt
@@ -22,6 +24,9 @@ from knock_on_atlas.api.auth import (
 from knock_on_atlas.api.demo import LiveGate, gate_from_settings
 from knock_on_atlas.api.jobs import JobQueue, queue_from_settings
 from knock_on_atlas.config import get_settings
+from knock_on_atlas.graph_store.review import list_edges, set_status
+from knock_on_atlas.graph_store.traversal import exposure
+from knock_on_atlas.workflow.analyses import Status
 from knock_on_atlas.workflow.worker import Job
 
 
@@ -46,6 +51,10 @@ class StartAnalysis(BaseModel):
     accession: str = Field(pattern=r"^\d{10}-\d{2}-\d{6}$")
 
 
+class EdgeDecision(BaseModel):
+    decision: Literal["approved", "rejected"]
+
+
 class Review(BaseModel):
     decision: Literal["approved", "rejected"]
     note: str = Field(default="", max_length=2000)
@@ -57,10 +66,20 @@ ACTIVE = ("queued", "paused", "published", "ended")
 RUNS_PER_DAY = 5  # per user; one leaked login must not drain the Jev budget
 MIN_SECRET_LENGTH = 32  # a short HS256 secret can be brute-forced from any token
 COLUMNS = "id, status, input, result, created_at, completed_at"
+# Each analysis with its hub's name and its 8-K, for the UI.
+SELECT_ANALYSES = (
+    f"SELECT {COLUMNS}, c.name, e.accepted_at, e.items, e.url FROM analyses"
+    " LEFT JOIN companies c ON c.cik = input->>'hub_cik'"
+    " LEFT JOIN events e ON e.accession = input->>'accession'"
+)
 
 
 def analysis(row: tuple[Any, ...]) -> dict[str, Any]:
-    return dict(zip(COLUMNS.split(", "), row, strict=True))
+    found = dict(zip(COLUMNS.split(", "), row[:6], strict=True))
+    found["hub_name"] = row[6]
+    event = dict(zip(("accepted_at", "items", "url"), row[7:], strict=True))
+    found["event"] = event if row[9] is not None else None
+    return found
 
 
 def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> FastAPI:
@@ -171,12 +190,35 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
             jobs.send(Job(analysis_id=analysis_id, **body.model_dump()))
         return {"id": analysis_id, "status": "queued"}
 
-    @app.get("/analyses")
-    def list_analyses(user: Anyone, conn: Conn, mine: bool = False) -> list[Any]:
+    @app.get("/events")
+    def list_events(user: Anyone, conn: Conn) -> list[dict[str, Any]]:
+        # Each filing with its hub's name and its latest run, for the inbox.
         rows = conn.execute(
-            f"SELECT {COLUMNS} FROM analyses"
-            " WHERE (NOT %s OR user_id = %s) ORDER BY created_at DESC LIMIT 50",
-            (mine, user.id),
+            "SELECT e.accession, e.cik, c.name, e.accepted_at, e.items, e.url,"
+            " a.id, a.status, a.result->'triage'"
+            " FROM events e LEFT JOIN companies c ON c.cik = e.cik"
+            " LEFT JOIN LATERAL (SELECT id, status, result FROM analyses"
+            "  WHERE input->>'accession' = e.accession"
+            "  ORDER BY created_at DESC LIMIT 1) a ON true"
+            " ORDER BY e.accepted_at DESC LIMIT 100"
+        ).fetchall()
+        keys = "accession hub_cik hub_name accepted_at items url"
+        events = []
+        for row in rows:
+            event = dict(zip(keys.split(), row[:6], strict=True))
+            run = {"id": str(row[6]), "status": row[7], "triage": row[8]}
+            events.append({**event, "run": run if row[6] else None})
+        return events
+
+    @app.get("/analyses")
+    def list_analyses(
+        user: Anyone, conn: Conn, mine: bool = False, status: Status | None = None
+    ) -> list[Any]:
+        rows = conn.execute(
+            f"{SELECT_ANALYSES} WHERE (NOT %s OR user_id = %s)"
+            " AND (%s::text IS NULL OR status = %s)"
+            " ORDER BY created_at DESC LIMIT 50",
+            (mine, user.id, status, status),
         ).fetchall()
         return [analysis(row) for row in rows]
 
@@ -185,11 +227,84 @@ def create_app(queue: JobQueue | None = None, gate: LiveGate | None = None) -> F
         analysis_id: uuid.UUID, user: Anyone, conn: Conn
     ) -> dict[str, Any]:
         row = conn.execute(
-            f"SELECT {COLUMNS} FROM analyses WHERE id = %s", (analysis_id,)
+            f"{SELECT_ANALYSES} WHERE id = %s", (analysis_id,)
         ).fetchone()
         if row is None:
             raise HTTPException(404, "no such analysis")
         return analysis(row)
+
+    @app.get("/companies/{cik}/exposure")
+    def company_exposure(
+        cik: str, user: Anyone, conn: Conn, as_of: date | None = None
+    ) -> dict[str, Any]:
+        """Who sells to the hub, and to them, through reviewed edges valid on as_of."""
+        hub = conn.execute(
+            "SELECT cik, name, tickers FROM companies WHERE cik = %s AND is_hub",
+            (cik,),
+        ).fetchone()
+        if hub is None:
+            raise HTTPException(404, "not a hub customer")
+        day = as_of or date.today()
+        paths = exposure(conn, cik, day)
+        # The last edge of each path links the supplier to the company it sells to.
+        rows = conn.execute(
+            "SELECT e.id, c.name, c.tickers, e.pct::float8, e.member_label,"
+            " e.source_accession, e.confidence, e.period_end, e.valid_from,"
+            " e.valid_to, e.reviewed_at, e.extraction_method"
+            " FROM entity_edges e JOIN companies c ON c.cik = e.src_cik"
+            " WHERE e.id = ANY(%s)",
+            ([p.edge_ids[-1] for p in paths],),
+        ).fetchall()
+        keys = (
+            "id",
+            "pct",
+            "member_label",
+            "source_accession",
+            "confidence",
+            "period_end",
+            "valid_from",
+            "valid_to",
+            "reviewed_at",
+            "extraction_method",
+        )
+        edges = {
+            r[0]: (r[1], r[2], dict(zip(keys, r[:1] + r[3:], strict=True)))
+            for r in rows
+        }
+        suppliers = []
+        for p in paths:
+            name, tickers, edge = edges[p.edge_ids[-1]]
+            suppliers.append(
+                {**asdict(p), "name": name, "tickers": tickers, "edge": edge}
+            )
+        return {
+            "hub": {"cik": hub[0], "name": hub[1], "tickers": hub[2]},
+            "as_of": day,
+            "suppliers": suppliers,
+        }
+
+    @app.get("/edges/review")
+    def edges_to_review(user: Reviewer, conn: Conn) -> list[dict[str, Any]]:
+        return [
+            {**asdict(edge), "filing_url": edge.filing_url}
+            for edge in list_edges(conn, "pending")
+        ]
+
+    @app.post("/edges/{edge_id}/decision")
+    def decide_edge(
+        edge_id: int, body: EdgeDecision, user: Reviewer, conn: Conn
+    ) -> dict[str, Any]:
+        # A reviewer's write, the only kind the API makes to entity_edges.
+        with conn.transaction():
+            row = conn.execute(
+                "SELECT status FROM entity_edges WHERE id = %s FOR UPDATE", (edge_id,)
+            ).fetchone()
+            if row is None:
+                raise HTTPException(404, "no such relationship")
+            if row[0] != "pending":
+                raise HTTPException(409, f"the relationship is already {row[0]}")
+            set_status(conn, [edge_id], body.decision, reviewer=user.email)
+        return {"id": edge_id, "status": body.decision}
 
     @app.post("/reviews/{analysis_id}", status_code=202, dependencies=[Depends(live)])
     def review(
