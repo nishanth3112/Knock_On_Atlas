@@ -1090,6 +1090,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "uvicorn" },
 ]
 ingest = [
     { name = "polars" },
@@ -1120,6 +1121,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.7.0" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "ruff", specifier = ">=0.17.3" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 ingest = [{ name = "polars", specifier = ">=2.1.0" }]
 
