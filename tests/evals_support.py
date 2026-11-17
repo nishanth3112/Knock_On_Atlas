@@ -365,6 +365,9 @@ def synthesizer(messages: list[BaseMessage], behaviour: str) -> AIMessage:
         headline = "Investors should buy the stock before the news spreads"
     if behaviour == "inflate" and claims:
         claims[0]["text"] = "Gentherm gets 45% of its revenue from Ford."
+    if behaviour == "borrow" and claims:
+        # The 8-K's own cut, restated as the supplier's revenue share.
+        claims[0]["text"] = "Gentherm gets 30% of its revenue from Ford."
     return submit(headline=headline, claims=claims, gaps=[])
 
 

@@ -151,5 +151,50 @@
       "decision": "approved",
       "reviewer": "eval"
     }
+  },
+  {
+    "id": "conflicting-share-borrowed-from-8k",
+    "category": "conflicting",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will cut F-150 Lightning output by 30% next year and record charges on the program."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "ended",
+      "escalated": true,
+      "absent": [
+        "30%"
+      ],
+      "error": "rejected twice"
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "script": {
+      "synthesizer": "borrow"
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
   }
 ]
