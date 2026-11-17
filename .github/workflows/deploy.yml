@@ -1,0 +1,47 @@
+name: deploy
+
+# Application code only: Terraform is applied from a laptop (aws-guide section 7).
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: # re-deploy, e.g. after a Terraform change to a function's settings
+
+permissions:
+  contents: read
+  id-token: write # OIDC: AWS issues short-lived credentials, no keys in GitHub
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # A ci run on main that passed, or a manual run from main.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.6"
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: scripts/package_lambda.sh
+      - run: scripts/deploy_lambdas.sh "$SHA"
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - run: uv run --frozen --no-default-groups python scripts/smoke.py "$API_URL" "$MCP_URL"
+        env:
+          API_URL: ${{ vars.API_URL }}
+          MCP_URL: ${{ vars.MCP_URL }}
