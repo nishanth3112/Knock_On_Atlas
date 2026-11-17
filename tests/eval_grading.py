@@ -15,8 +15,10 @@ ENDED = {"published", "rejected", "ended"}
 SHARE_TOLERANCE = 0.1  # percentage points
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 _PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent)")
+# Trading advice only: "suppliers sell parts to Ford" is not advice.
 ADVICE = re.compile(
-    r"(?i)\b(buy|sell|short)\b(?!-)|price target|investors should|we recommend"
+    r"(?i)\b(buy|sell|short)\s+(the\s+)?(stock|shares)\b"
+    r"|price target|investors should|we recommend"
 )
 
 
