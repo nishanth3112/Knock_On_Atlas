@@ -7,6 +7,7 @@ import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import StateSnapshot
 from test_graph import role_responder
 from test_mcp_server import (
     ALL_SCOPES,
@@ -23,7 +24,8 @@ from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_t
 from knock_on_atlas.retrieval.embed import Embedder
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.graph import checkpoint_serde
-from knock_on_atlas.workflow.worker import Job, handle
+from knock_on_atlas.workflow.state import JevDecision, Usage
+from knock_on_atlas.workflow.worker import Job, handle, view
 
 APPROVE = {"decision": "approved", "reviewer": "test"}
 
@@ -140,3 +142,17 @@ def test_a_decision_for_a_run_without_a_checkpoint_starts_nothing(
     calls = Calls()
     assert worker.run(calls, APPROVE) == "ended" and calls.prompts == []
     assert worker.row() == ("ended", None)
+
+
+def test_the_view_keeps_the_runs_jev_spend() -> None:
+    calls = [
+        JevDecision(
+            question=q, answer="a", probability=None, request_id=None, input_tokens=n
+        )
+        for q, n in [("j1", 120), ("j4", 300)]
+    ]
+    values = {"usage": Usage(llm_calls=6, tokens=900), "jev": calls}
+    snapshot = StateSnapshot(values, (), {}, None, None, None, (), ())
+    shown = view(snapshot)
+    assert shown is not None and shown["jev_input_tokens"] == 420
+    assert shown["usage"] == {"llm_calls": 6, "tool_calls": 0, "tokens": 900}

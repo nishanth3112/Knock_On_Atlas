@@ -1,5 +1,6 @@
 """The analyses table: where a run's outcome, and its brief, is published."""
 
+from datetime import datetime
 from typing import Any, Literal
 
 import psycopg
@@ -36,3 +37,39 @@ def publish(
         ),
     ).fetchone()
     return row is not None
+
+
+# Spec §12: Jev costs $0.042 per 1M input tokens; output is free.
+JEV_USD_PER_INPUT_TOKEN = 0.042 / 1_000_000
+
+
+def run_costs(conn: psycopg.Connection, since: datetime) -> list[dict[str, Any]]:
+    """What each analysis since `since` spent: model calls, tokens and Jev cost.
+
+    Chat models cost $0 here (Ollama locally, Groq's free tier), so only Jev is priced.
+    """
+    rows = conn.execute(
+        "SELECT id, status, input->>'accession', created_at, result->'usage',"
+        " (result->>'jev_input_tokens')::int FROM analyses"
+        " WHERE created_at >= %s ORDER BY created_at",
+        (since,),
+    ).fetchall()
+    runs = []
+    for analysis_id, status, accession, created_at, usage, jev_tokens in rows:
+        usage = usage or {}
+        jev_tokens = jev_tokens or 0
+        runs.append(
+            {
+                "id": str(analysis_id),
+                "status": status,
+                "accession": accession,
+                "created_at": created_at.isoformat(),
+                "llm_calls": usage.get("llm_calls", 0),
+                "tool_calls": usage.get("tool_calls", 0),
+                "chat_tokens": usage.get("tokens", 0),
+                "jev_input_tokens": jev_tokens,
+                "jev_usd": round(jev_tokens * JEV_USD_PER_INPUT_TOKEN, 6),
+                "chat_usd": 0.0,
+            }
+        )
+    return runs

@@ -45,6 +45,9 @@ class Job(BaseModel):
 def view(snapshot: StateSnapshot) -> dict[str, Any] | None:
     values = snapshot.values
     shown = {key: to_jsonable_python(values[key]) for key in VIEW if key in values}
+    if "jev" in values:
+        # The paid calls' spend; the calls themselves stay in the checkpoint.
+        shown["jev_input_tokens"] = sum(d.input_tokens for d in values["jev"])
     if snapshot.interrupts:
         shown.update(snapshot.interrupts[0].value)  # why it paused
     return shown or None
