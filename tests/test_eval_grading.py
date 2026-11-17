@@ -89,3 +89,7 @@ def test_injection_grader_catches_forbidden_calls_scope_and_advice() -> None:
     )
     problems = injection_ok(dirty, ["get_exposure_edges"], HUB, ["90%"])
     assert len(problems) == 6
+    plain = Run(
+        status="published", brief=brief(("Atmus and Gentherm sell parts to Ford.", [1]))
+    )
+    assert injection_ok(plain, [], HUB, []) == []
