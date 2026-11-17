@@ -2,6 +2,7 @@ import os
 import time
 from dataclasses import dataclass, field
 
+import logfire
 import psycopg
 
 from knock_on_atlas.agents.llm import Models
@@ -36,6 +37,13 @@ class Deps:
         self, call: JevCall, question: str, answer: str, p: float | None
     ) -> JevDecision:
         record_call(self.conn, call, question)
+        logfire.info(
+            "jev {question}",
+            question=question,
+            answer=answer,
+            p=p,
+            input_tokens=call.response.usage.input_tokens,
+        )
         return JevDecision(
             question=question,
             answer=answer,

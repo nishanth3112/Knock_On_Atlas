@@ -26,6 +26,7 @@ from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.jev.client import jev_from_settings
 from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_token
 from knock_on_atlas.mcp_server.server import TOOL_SCOPES, build_server
+from knock_on_atlas.observability import configure
 from knock_on_atlas.retrieval.embed import BgeEmbedder
 from knock_on_atlas.workflow import budgets
 from knock_on_atlas.workflow.checkpoints import checkpointer
@@ -37,6 +38,7 @@ POLL_SECONDS = 1.0
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("serve")
 settings = get_settings()
+configure(settings)  # spans reach Logfire only when LOGFIRE_TOKEN is set
 wall_clock = settings.run_wall_clock_seconds or budgets.WALL_CLOCK_SECONDS
 queue = LocalQueue()
 
