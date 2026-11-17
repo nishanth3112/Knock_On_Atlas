@@ -1,0 +1,182 @@
+[
+  {
+    "id": "ambiguous-jev-negative",
+    "category": "ambiguous",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "8.01"
+      ],
+      "excerpt": "Item 8.01. Other Events. Ford said it will move part of its seat and climate-control sourcing to new vendors next year."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "jev": {
+      "j1": [
+        "MATERIAL_NEGATIVE",
+        0.9
+      ],
+      "j4": 4,
+      "j5": [
+        "AUTO_PUBLISH",
+        0.9
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "ambiguous-jev-positive-publishes",
+    "category": "ambiguous",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "8.01"
+      ],
+      "excerpt": "Item 8.01. Other Events. Ford will add a third shift at its Kentucky truck plant."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": false
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "jev": {
+      "j1": [
+        "MATERIAL_POSITIVE",
+        0.91
+      ],
+      "j4": 4,
+      "j5": [
+        "AUTO_PUBLISH",
+        0.93
+      ]
+    }
+  },
+  {
+    "id": "ambiguous-jev-unsure-is-monitor",
+    "category": "ambiguous",
+    "split": "held_out",
+    "eight_k": {
+      "items": [
+        "8.01"
+      ],
+      "excerpt": "Item 8.01. Other Events. Ford said it will move part of its seat and climate-control sourcing to new vendors next year."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "jev": {
+      "j1": [
+        "MATERIAL_POSITIVE",
+        0.6
+      ],
+      "j4": 4,
+      "j5": [
+        "AUTO_PUBLISH",
+        0.9
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "ambiguous-jev-off-is-monitor",
+    "category": "ambiguous",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "8.01"
+      ],
+      "excerpt": "Item 8.01. Other Events. Ford said it will move part of its seat and climate-control sourcing to new vendors next year."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "stale-edge-expired",
+    "category": "stale",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0,
+      "error": "no approved suppliers"
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22,
+          "valid_to": "2025-06-01"
+        }
+      ]
+    }
+  },
+  {
+    "id": "stale-edge-not-yet-valid",
+    "category": "stale",
+    "split": "held_out",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0,
+      "error": "no approved suppliers"
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22,
+          "valid_from": "2026-02-20"
+        }
+      ]
+    }
+  },
+  {
+    "id": "stale-edge-never-approved",
+    "category": "stale",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0,
+      "error": "no approved suppliers"
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22,
+          "status": "pending"
+        }
+      ]
+    }
+  }
+]

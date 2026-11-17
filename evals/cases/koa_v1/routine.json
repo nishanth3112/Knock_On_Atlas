@@ -1,0 +1,117 @@
+[
+  {
+    "id": "routine-officer-change",
+    "category": "routine",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "5.02"
+      ],
+      "excerpt": "Item 5.02. Departure of Directors or Certain Officers. Ford named a new chief financial officer."
+    },
+    "expect": {
+      "trajectory": [
+        "triage"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    }
+  },
+  {
+    "id": "routine-exhibits-only",
+    "category": "routine",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "9.01"
+      ],
+      "excerpt": "Item 9.01. Financial Statements and Exhibits."
+    },
+    "expect": {
+      "trajectory": [
+        "triage"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    }
+  },
+  {
+    "id": "routine-shareholder-vote",
+    "category": "routine",
+    "split": "held_out",
+    "eight_k": {
+      "items": [
+        "5.07",
+        "9.01"
+      ],
+      "excerpt": "Item 5.07. Submission of Matters to a Vote of Security Holders. Shareholders elected all directors."
+    },
+    "expect": {
+      "trajectory": [
+        "triage"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    }
+  },
+  {
+    "id": "routine-by-jev",
+    "category": "routine",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "8.01"
+      ],
+      "excerpt": "Item 8.01. Other Events. Ford priced $2 billion of senior notes due 2031."
+    },
+    "expect": {
+      "trajectory": [
+        "triage"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "jev": {
+      "j1": [
+        "ROUTINE",
+        0.95
+      ]
+    }
+  }
+]
