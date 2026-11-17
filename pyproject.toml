@@ -18,6 +18,7 @@ dependencies = [
     "langchain-ollama>=1.1.0",
     "langgraph>=1.2.19,<2",
     "langgraph-checkpoint-aws>=1.2.6,<2",
+    "logfire>=5.6.0",
     "numpy>=2.5.4",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.2",
@@ -31,6 +32,10 @@ knock-on-atlas = "knock_on_atlas:main"
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.logfire]
+# Tests and scripts that never call observability.configure make no spans.
+ignore_no_config = true
 
 [tool.uv]
 python-preference = "only-managed"

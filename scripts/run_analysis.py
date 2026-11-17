@@ -28,6 +28,7 @@ from knock_on_atlas.edgar.client import SecClient
 from knock_on_atlas.jev.client import jev_from_settings
 from knock_on_atlas.mcp_server.client import local_client, mcp_caller, service_token
 from knock_on_atlas.mcp_server.server import TOOL_SCOPES, build_server
+from knock_on_atlas.observability import configure
 from knock_on_atlas.retrieval.embed import BgeEmbedder
 from knock_on_atlas.workflow import budgets
 from knock_on_atlas.workflow.checkpoints import checkpointer
@@ -44,6 +45,7 @@ parser.add_argument("--approve", action="store_true")
 parser.add_argument("--analysis-id")
 args = parser.parse_args()
 settings = get_settings()
+configure(settings)  # spans reach Logfire only when LOGFIRE_TOKEN is set
 if args.analysis_id and settings.checkpointer is Checkpointer.MEMORY:
     # A memory checkpoint died with the last process: this would rerun from scratch.
     parser.error("--analysis-id needs CHECKPOINTER=dynamodb to resume a run")

@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Annotated, Any
 
+import logfire
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
     BaseMessage,
@@ -84,8 +85,11 @@ async def run_agent[T: BaseModel](
         if why := exhausted(spent + run.usage, deadline, limit=limit):
             run.error = why
             return run
-        reply = await bound.ainvoke(messages)
-        tokens = reply.usage_metadata["total_tokens"] if reply.usage_metadata else 0
+        model = getattr(llm, "model", llm._llm_type)
+        with logfire.span("llm call", model=model) as span:
+            reply = await bound.ainvoke(messages)
+            tokens = reply.usage_metadata["total_tokens"] if reply.usage_metadata else 0
+            span.set_attribute("tokens", tokens)
         run.usage += Usage(llm_calls=1, tokens=tokens)
         messages.append(reply)
         if not reply.tool_calls:

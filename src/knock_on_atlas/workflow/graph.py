@@ -4,6 +4,7 @@ gate, review, brief."""
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
+import logfire
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -95,7 +96,14 @@ def build_graph(
     def bind(node: Node) -> StateNode:
         async def run(state: KOAState) -> dict[str, Any]:
             deps.crash(f"{node.__name__}:before")
-            update = await node(state, deps)
+            with logfire.span(
+                "node {node}",
+                node=node.__name__,
+                run_id=state.get("run_id"),
+                hub_cik=state.get("hub_cik"),
+            ) as span:
+                update = await node(state, deps)
+                span.set_attribute("errors", update.get("errors", []))
             deps.crash(f"{node.__name__}:after")
             return update
 

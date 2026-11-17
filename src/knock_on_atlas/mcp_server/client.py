@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx2
 import jwt
+import logfire
 from fastmcp import Client, FastMCP
 from fastmcp.client.transports import StreamableHttpTransport
 from fastmcp.exceptions import ToolError
@@ -71,9 +72,12 @@ def mcp_caller(
     """Tool calls for agents: the structured result, or the refusal as data."""
 
     async def call(name: str, args: dict[str, Any]) -> Any:
-        try:
-            return (await client.call_tool(name, args)).structured_content
-        except ToolError as error:
-            return {"error": str(error)}
+        with logfire.span("tool {tool}", tool=name) as span:
+            try:
+                result = (await client.call_tool(name, args)).structured_content
+            except ToolError as error:
+                result = {"error": str(error)}
+            span.set_attribute("ok", "error" not in (result or {}))
+            return result
 
     return call
