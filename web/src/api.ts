@@ -178,7 +178,9 @@ async function request<T>(method: string, path: string, body?: object): Promise<
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body) headers["Content-Type"] = "application/json";
-  const response = await fetch(`/api${path}`, {
+  // The deployed API's function URL (set at build time on Vercel); locally the Vite proxy.
+  const base = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/$/, "");
+  const response = await fetch(`${base}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(convertKeys(body, snake)) : undefined,
