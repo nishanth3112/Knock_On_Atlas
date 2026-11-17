@@ -5,6 +5,7 @@ from typing import Any
 from langgraph.graph import END
 from langgraph.types import interrupt
 
+from knock_on_atlas.jev.client import JEV_FAILURES
 from knock_on_atlas.jev.questions import J5_MIN, escalation
 from knock_on_atlas.workflow.deps import Deps
 from knock_on_atlas.workflow.state import Gate, KOAState, ReviewDecision
@@ -43,7 +44,14 @@ async def risk_gate(state: KOAState, deps: Deps) -> dict[str, Any]:
         "suppliers": {x.name: x.note for x in state.get("exposures", [])},
         "evidence": evidence,
     }
-    answer, p, call = escalation(deps.jev, jev_state)
+    try:
+        answer, p, call = escalation(deps.jev, jev_state)
+    except JEV_FAILURES as error:
+        reason = f"Jev unavailable: {error}"
+        return {
+            "gate": Gate(route="HUMAN_REVIEW", reasons=[reason]),
+            "errors": [f"risk_gate: {reason}"],
+        }
     route = answer if p >= J5_MIN else "HUMAN_REVIEW"
     gate = Gate(route=route, reasons=[f"J5 {answer} p={p:.2f}"])
     return {"gate": gate, "jev": [deps.log_jev(call, "j5", answer, p)]}

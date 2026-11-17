@@ -4,7 +4,7 @@ from typing import Any
 
 import psycopg
 import pytest
-from fakes import choice, fake_jev, scripted
+from fakes import choice, down_jev, fake_jev, scripted
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
@@ -136,3 +136,10 @@ def test_jev_off_never_publishes_on_its_own(db: psycopg.Connection) -> None:
     result = run(db, "MATERIAL_POSITIVE", None)
     assert result["gate"].reasons == ["Jev off: no automatic publishing"]
     assert "__interrupt__" in result
+
+
+def test_a_failing_jev_sends_the_run_to_a_reviewer(db: psycopg.Connection) -> None:
+    result = run(db, "MATERIAL_POSITIVE", down_jev())
+    assert result["gate"].route == "HUMAN_REVIEW"
+    assert result["gate"].reasons[0].startswith("Jev unavailable")
+    assert "__interrupt__" in result and "brief" not in result

@@ -93,6 +93,10 @@ class JevError(RuntimeError):
     pass
 
 
+# What a Jev call can raise when the service fails; nodes then use the Jev-off rules.
+JEV_FAILURES = (JevError, httpx.HTTPError)
+
+
 @dataclass(frozen=True)
 class JevCall:
     route: JevRoute
