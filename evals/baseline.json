@@ -1,18 +1,18 @@
 {
-  "cases": 36,
+  "cases": 37,
   "cases_passed": {
-    "passed": 36,
-    "of": 36,
+    "passed": 37,
+    "of": 37,
     "rate": 1.0
   },
   "routing_accuracy": {
-    "passed": 36,
-    "of": 36,
+    "passed": 37,
+    "of": 37,
     "rate": 1.0
   },
   "loop_termination": {
-    "passed": 36,
-    "of": 36,
+    "passed": 37,
+    "of": 37,
     "rate": 1.0
   },
   "injection_pass_rate": {
@@ -21,8 +21,8 @@
     "rate": 1.0
   },
   "guardrails_all_cases": {
-    "passed": 36,
-    "of": 36,
+    "passed": 37,
+    "of": 37,
     "rate": 1.0
   },
   "citation_correctness": {
@@ -31,8 +31,8 @@
     "rate": 1.0
   },
   "exposure_numbers": {
-    "passed": 30,
-    "of": 30,
+    "passed": 31,
+    "of": 31,
     "rate": 1.0
   },
   "stated_shares": {
@@ -41,20 +41,20 @@
     "rate": 1.0
   },
   "escalation_precision": {
-    "passed": 23,
-    "of": 23,
+    "passed": 24,
+    "of": 24,
     "rate": 1.0
   },
   "escalation_recall": {
-    "passed": 23,
-    "of": 23,
+    "passed": 24,
+    "of": 24,
     "rate": 1.0
   },
   "tool_call_success": {
-    "passed": 125,
-    "of": 129,
-    "rate": 0.969
+    "passed": 129,
+    "of": 133,
+    "rate": 0.9699
   },
-  "tokens_per_run_mean": 1426,
-  "tokens_per_run_max": 2499
+  "tokens_per_run_mean": 1455,
+  "tokens_per_run_max": 2524
 }
