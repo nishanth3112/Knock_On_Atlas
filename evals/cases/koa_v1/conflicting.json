@@ -1,0 +1,155 @@
+[
+  {
+    "id": "conflicting-share-in-filing",
+    "category": "conflicting",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "evidence_researcher",
+        "verifier",
+        "evidence_researcher",
+        "verifier",
+        "human_review"
+      ],
+      "outcome": "rejected",
+      "escalated": true,
+      "absent": [
+        "25%"
+      ]
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "Ford Motor Co accounted for 25% of our product revenues."
+        }
+      ]
+    },
+    "decision": {
+      "decision": "rejected",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "conflicting-one-of-two-suppliers",
+    "category": "conflicting",
+    "split": "held_out",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "evidence_researcher",
+        "verifier",
+        "evidence_researcher",
+        "verifier",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true,
+      "absent": [
+        "25%"
+      ]
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        },
+        {
+          "src": "S2",
+          "pct": 15
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "Ford Motor Co accounted for 22% of our product revenues."
+        },
+        {
+          "of": "S2",
+          "text": "Ford Motor Co accounted for 25% of our paper revenues."
+        }
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "conflicting-analyst-inflates-share",
+    "category": "conflicting",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "ended",
+      "escalated": true,
+      "absent": [
+        "45%"
+      ],
+      "error": "rejected twice"
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ]
+    },
+    "script": {
+      "analyst": "inflate",
+      "synthesizer": "inflate"
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  }
+]
