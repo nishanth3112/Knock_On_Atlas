@@ -108,8 +108,6 @@ async def run_agent[T: BaseModel](
                     return run
                 except ValidationError as error:
                     content = f"submit rejected: {error}"
-            elif name not in allowed:
-                content = f"tool {name} is not available to you"
             elif why := exhausted(spent + run.usage, deadline, tool=True, limit=limit):
                 run.error = why
                 return run
