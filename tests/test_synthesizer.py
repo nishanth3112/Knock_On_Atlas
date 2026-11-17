@@ -163,7 +163,41 @@ def test_problems_lists_each_rule() -> None:
     ok = ExposureBrief(
         headline="h", claims=[Claim(text="t", supplier_ciks=[], citations=[1])], gaps=[]
     )
-    assert problems(ok, {1}, "") == []
-    assert problems(ExposureBrief(headline="h", claims=[], gaps=[]), set(), "") == [
+    assert problems(ok, {1: "q"}, {}, "") == []
+    assert problems(ExposureBrief(headline="h", claims=[], gaps=[]), {}, {}, "") == [
         "the brief has no claims"
     ]
+
+
+def test_a_share_must_come_from_the_cited_quote_or_the_graph() -> None:
+    # The 8-K's own percentage is a fact, but not a supplier's revenue share.
+    facts = f"8-K: Ford will cut output by 30%.\nVerified quotes:\n- chunk 11: {QUOTE}"
+    borrowed = ExposureBrief(
+        headline="Gentherm exposed to Ford's cuts",
+        claims=[
+            Claim(
+                text="Gentherm gets 30% of its revenue from Ford.",
+                supplier_ciks=[GOOD],
+                citations=[11],
+            )
+        ],
+        gaps=[],
+    )
+    assert problems(borrowed, {11: QUOTE}, {GOOD: 22.0}, facts) == [
+        "shares not in the cited quotes: [30.0] in"
+        " 'Gentherm gets 30% of its revenue from Ford.'"
+    ]
+    # The 8-K's own figure belongs in the headline, where the facts check covers it.
+    headline = borrowed.model_copy(
+        update={
+            "headline": "Ford cuts output 30%; Gentherm is exposed",
+            "claims": [
+                Claim(
+                    text="Ford is 22% of Gentherm's revenue.",
+                    supplier_ciks=[GOOD],
+                    citations=[11],
+                )
+            ],
+        }
+    )
+    assert problems(headline, {11: QUOTE}, {GOOD: 22.0}, facts) == []

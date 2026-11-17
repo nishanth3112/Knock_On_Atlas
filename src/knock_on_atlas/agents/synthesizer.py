@@ -12,6 +12,8 @@ SYSTEM = (
     "You write a short exposure brief for analysts: which suppliers a customer's"
     " 8-K affects and why. Use only the facts given. Every claim cites the chunk"
     " ids of the quotes it relies on, and every number must come from the facts."
+    " A claim's percentages must come from the quotes it cites; put the 8-K's own"
+    " figures in the headline."
     " Describe exposure; never recommend buying, selling or shorting a security,"
     " and never give price targets."
 )
@@ -22,13 +24,28 @@ ADVICE = re.compile(
     r"|outperform|underperform)\b"
 )
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
+_PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent)")
 
 
 def numbers(text: str) -> set[str]:
     return set(_NUMBER.findall(text.replace(",", "")))
 
 
-def problems(brief: ExposureBrief, cited: set[int], facts: str) -> list[str]:
+def percents(text: str) -> set[float]:
+    return {float(p) for p in _PERCENT.findall(text.replace(",", ""))}
+
+
+def unsupported(text: str, allowed: set[float]) -> list[float]:
+    return sorted(
+        p for p in percents(text) if not any(abs(p - a) < 0.05 for a in allowed)
+    )
+
+
+def problems(
+    brief: ExposureBrief, quotes: dict[int, str], shares: dict[str, float], facts: str
+) -> list[str]:
+    """Why the brief can't be published; `quotes` are the verified ones by chunk id
+    and `shares` the graph's share for each supplier."""
     found = []
     known = numbers(facts)
     for text in [brief.headline, *(c.text for c in brief.claims)]:
@@ -39,8 +56,17 @@ def problems(brief: ExposureBrief, cited: set[int], facts: str) -> list[str]:
     for claim in brief.claims:
         if not claim.citations:
             found.append(f"uncited claim: {claim.text!r}")
-        elif bad := set(claim.citations) - cited:
+        elif bad := set(claim.citations) - set(quotes):
             found.append(f"cites unverified chunks {sorted(bad)}: {claim.text!r}")
+        else:
+            # A claim's percentages come from its cited quotes or the graph, never
+            # from the 8-K's other figures (those belong in the headline).
+            allowed = {p for c in claim.citations for p in percents(quotes[c])}
+            allowed |= {shares[s] for s in claim.supplier_ciks if s in shares}
+            if wrong := unsupported(claim.text, allowed):
+                found.append(
+                    f"shares not in the cited quotes: {wrong} in {claim.text!r}"
+                )
     if not brief.claims:
         found.append("the brief has no claims")
     return found
@@ -81,7 +107,8 @@ async def brief_synthesizer(state: KOAState, deps: Deps) -> dict[str, Any]:
     for x in state.get("exposures", []):
         known = known.replace(x.note, "")
     task = f"<data>\n{facts}\n</data>\nWrite the brief."
-    cited = {e.chunk_id for e in quotes}
+    verified = {e.chunk_id: e.quote for e in quotes}
+    shares = {x.supplier_cik: x.weight for x in state.get("exposures", [])}
 
     usage = Usage()
     found: list[str] = []
@@ -99,7 +126,7 @@ async def brief_synthesizer(state: KOAState, deps: Deps) -> dict[str, Any]:
         usage += run.usage
         if run.output is None:
             return {"usage": usage, "errors": [f"brief_synthesizer: {run.error}"]}
-        found = problems(run.output, cited, known)
+        found = problems(run.output, verified, shares, known)
         if not found:
             gaps = [
                 f"no verified evidence for {c}"
