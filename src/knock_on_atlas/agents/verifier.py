@@ -3,6 +3,7 @@
 import re
 from typing import Any
 
+from knock_on_atlas.jev.client import JEV_FAILURES
 from knock_on_atlas.jev.questions import J4_PASS, sufficiency
 from knock_on_atlas.workflow.budgets import BUDGET_EXHAUSTED, MAX_VERIFIER_LOOPS
 from knock_on_atlas.workflow.deps import Deps
@@ -101,12 +102,17 @@ async def verifier(state: KOAState, deps: Deps) -> dict[str, Any]:
 
     update: dict[str, Any] = {}
     if to_score and deps.jev is not None:
-        levels, call = sufficiency(deps.jev, to_score)
-        for claim_id, level in levels.items():
-            i = int(claim_id[1:])
-            checks[i] = checks[i].model_copy(update={"score": level})
-        mean = sum(levels.values()) / len(levels)
-        update["jev"] = [deps.log_jev(call, "j4", f"mean level {mean:.1f}", None)]
+        try:
+            levels, call = sufficiency(deps.jev, to_score)
+        except JEV_FAILURES as error:
+            # The code checks' scores stand, as with Jev off; the gap goes to review.
+            update["errors"] = [f"verifier: Jev unavailable: {error}"]
+        else:
+            for claim_id, level in levels.items():
+                i = int(claim_id[1:])
+                checks[i] = checks[i].model_copy(update={"score": level})
+            mean = sum(levels.values()) / len(levels)
+            update["jev"] = [deps.log_jev(call, "j4", f"mean level {mean:.1f}", None)]
 
     passed = {
         c.supplier_cik

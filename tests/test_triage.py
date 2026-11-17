@@ -3,7 +3,7 @@ from typing import Any
 
 import psycopg
 import pytest
-from fakes import choice, fake_jev, scripted
+from fakes import choice, down_jev, fake_jev, scripted
 from langgraph.graph import END
 
 from knock_on_atlas.agents.llm import Models
@@ -80,3 +80,11 @@ def test_routine_ends_the_run_without_llm_calls(db: psycopg.Connection) -> None:
 def test_jev_off_sends_free_text_items_to_monitor(db: psycopg.Connection) -> None:
     assert run(db, ["7.01"], None)["triage"].label == "MONITOR"
     assert run(db, ["5.02"], None)["triage"].label == "ROUTINE"
+
+
+def test_a_failing_jev_falls_back_to_monitor(db: psycopg.Connection) -> None:
+    update = run(db, ["8.01"], down_jev())
+    assert update["triage"].label == "MONITOR"
+    assert update["triage"].method == "fallback"
+    assert "Jev unavailable" in update["errors"][0]
+    assert route_after_triage(update) == "planner"

@@ -60,6 +60,17 @@ def fake_jev(
     )
 
 
+def down_jev(status: int = 429) -> JevClient:
+    """A Jev client whose every call fails, as during a rate limit or outage."""
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, json={"error": "rate limited"})
+
+    return JevClient(
+        JevRoute.TYPESAFE, "test-key", transport=httpx.MockTransport(respond)
+    )
+
+
 def choice(option: str, p: float, others: tuple[str, ...] = ()) -> dict[str, Any]:
     rest = {o: (1 - p) / len(others) for o in others} if others else {}
     return {

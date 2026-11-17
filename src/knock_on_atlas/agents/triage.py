@@ -4,6 +4,7 @@ from typing import Any
 
 from langgraph.graph import END
 
+from knock_on_atlas.jev.client import JEV_FAILURES
 from knock_on_atlas.jev.questions import J1_MIN, materiality, materiality_state
 from knock_on_atlas.mcp_server.server import EightK
 from knock_on_atlas.workflow.deps import Deps
@@ -51,7 +52,15 @@ async def triage(state: KOAState, deps: Deps) -> dict[str, Any]:
         update["triage"] = Triage(label="MONITOR", method="fallback", reason="Jev off")
     else:
         jev_state = materiality_state(company["name"], event_data)
-        label, p, call = materiality(deps.jev, jev_state)
+        try:
+            label, p, call = materiality(deps.jev, jev_state)
+        except JEV_FAILURES as error:
+            # As if Jev were off: MONITOR, so the risk gate sends it to a reviewer.
+            update["triage"] = Triage(
+                label="MONITOR", method="fallback", reason="Jev unavailable"
+            )
+            update["errors"] = [f"triage: Jev unavailable: {error}"]
+            return update
         update["jev"] = [deps.log_jev(call, "j1", label, p)]
         confident = p >= J1_MIN
         update["triage"] = Triage(

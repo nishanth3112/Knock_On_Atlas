@@ -4,7 +4,7 @@ from typing import Any
 
 import psycopg
 import pytest
-from fakes import fake_jev, scripted
+from fakes import down_jev, fake_jev, scripted
 from test_mcp_server import FORD, SUPPLIER, seeded_server
 
 from knock_on_atlas.agents.llm import Models
@@ -122,6 +122,15 @@ def test_j4_scores_the_quotes_that_pass_the_code_checks(
     assert not update["verification"].ok
     assert update["jev"][0].question == "j4"
     assert db.execute("SELECT purpose FROM jev_calls").fetchall() == [("j4",)]
+
+
+def test_a_failing_jev_keeps_the_code_checks_and_records_the_gap(
+    db: psycopg.Connection, seeded: tuple[int, int]
+) -> None:
+    update = verify(db, seeded, [QUOTE], down_jev())
+    assert update["verification"].ok  # as with Jev off: both code checks passed
+    assert "Jev unavailable" in update["errors"][0]
+    assert "jev" not in update
 
 
 def test_the_loop_stops_after_two_retries() -> None:
