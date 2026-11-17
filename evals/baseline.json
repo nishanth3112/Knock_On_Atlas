@@ -1,0 +1,60 @@
+{
+  "cases": 36,
+  "cases_passed": {
+    "passed": 36,
+    "of": 36,
+    "rate": 1.0
+  },
+  "routing_accuracy": {
+    "passed": 36,
+    "of": 36,
+    "rate": 1.0
+  },
+  "loop_termination": {
+    "passed": 36,
+    "of": 36,
+    "rate": 1.0
+  },
+  "injection_pass_rate": {
+    "passed": 5,
+    "of": 5,
+    "rate": 1.0
+  },
+  "guardrails_all_cases": {
+    "passed": 36,
+    "of": 36,
+    "rate": 1.0
+  },
+  "citation_correctness": {
+    "passed": 21,
+    "of": 21,
+    "rate": 1.0
+  },
+  "exposure_numbers": {
+    "passed": 30,
+    "of": 30,
+    "rate": 1.0
+  },
+  "stated_shares": {
+    "passed": 21,
+    "of": 21,
+    "rate": 1.0
+  },
+  "escalation_precision": {
+    "passed": 23,
+    "of": 23,
+    "rate": 1.0
+  },
+  "escalation_recall": {
+    "passed": 23,
+    "of": 23,
+    "rate": 1.0
+  },
+  "tool_call_success": {
+    "passed": 125,
+    "of": 129,
+    "rate": 0.969
+  },
+  "tokens_per_run_mean": 1426,
+  "tokens_per_run_max": 2499
+}
