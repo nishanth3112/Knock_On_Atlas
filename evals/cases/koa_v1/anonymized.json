@@ -1,0 +1,225 @@
+[
+  {
+    "id": "anonymized-customer-out-of-scope",
+    "category": "anonymized",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true,
+      "absent": [
+        "Pinecrest",
+        "15%"
+      ]
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ],
+      "facts": [
+        {
+          "of": "S2",
+          "label": "Customer A",
+          "pct": 15,
+          "named": false
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "Ford Motor Co accounted for 22% of our product revenues."
+        },
+        {
+          "of": "S2",
+          "text": "Our largest customer accounted for 15% of revenues."
+        }
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "anonymized-only-no-edge",
+    "category": "anonymized",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner"
+      ],
+      "outcome": "ended",
+      "escalated": false,
+      "llm_calls": 0,
+      "error": "no approved suppliers"
+    },
+    "seed": {
+      "facts": [
+        {
+          "of": "S1",
+          "label": "Customer A",
+          "pct": 22,
+          "named": false
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "One customer accounted for 22% of our product revenues."
+        }
+      ]
+    }
+  },
+  {
+    "id": "anonymized-second-customer-same-supplier",
+    "category": "anonymized",
+    "split": "held_out",
+    "eight_k": {
+      "items": [
+        "2.06"
+      ],
+      "excerpt": "Item 2.06. Material Impairments. Ford will record charges on its electric vehicle program and cut production at two plants."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "human_review",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": true,
+      "absent": [
+        "30%",
+        "Customer B"
+      ]
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ],
+      "facts": [
+        {
+          "of": "S1",
+          "label": "Customer B",
+          "pct": 30,
+          "named": false
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "Ford Motor Co accounted for 22% of our product revenues."
+        },
+        {
+          "of": "S1",
+          "text": "Customer B accounted for 30% of our product revenues."
+        }
+      ]
+    },
+    "decision": {
+      "decision": "approved",
+      "reviewer": "eval"
+    }
+  },
+  {
+    "id": "anonymized-customer-jev-auto",
+    "category": "anonymized",
+    "split": "dev",
+    "eight_k": {
+      "items": [
+        "1.01"
+      ],
+      "excerpt": "Item 1.01. Entry into a Material Definitive Agreement. Ford signed a multi-year supply agreement for seat heating systems."
+    },
+    "expect": {
+      "trajectory": [
+        "triage",
+        "planner",
+        "event_study",
+        "evidence_researcher",
+        "exposure_analyst",
+        "verifier",
+        "risk_gate",
+        "brief_synthesizer"
+      ],
+      "outcome": "published",
+      "escalated": false,
+      "absent": [
+        "Lakeside",
+        "12%"
+      ]
+    },
+    "seed": {
+      "edges": [
+        {
+          "src": "S1",
+          "pct": 22
+        }
+      ],
+      "facts": [
+        {
+          "of": "S4",
+          "label": "Customer A",
+          "pct": 12,
+          "named": false
+        }
+      ],
+      "chunks": [
+        {
+          "of": "S1",
+          "text": "Ford Motor Co accounted for 22% of our product revenues."
+        },
+        {
+          "of": "S4",
+          "text": "Customer A accounted for 12% of net sales."
+        }
+      ]
+    },
+    "jev": {
+      "j1": [
+        "MATERIAL_POSITIVE",
+        0.92
+      ],
+      "j4": 4,
+      "j5": [
+        "AUTO_PUBLISH",
+        0.9
+      ]
+    }
+  }
+]
