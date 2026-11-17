@@ -136,6 +136,22 @@ def test_a_rejected_brief_gets_one_retry_with_the_reasons(
     )
 
 
+def test_numbers_from_the_analysts_note_are_not_facts(db: psycopg.Connection) -> None:
+    run = state()
+    run["exposures"][0].note = "Ford is 45% of our revenue."
+    inflated = brief("Gentherm gets 45% of its revenue from Ford.", [11])
+
+    async def no_tools(name: str, args: dict[str, Any]) -> Any:
+        raise AssertionError("the synthesizer has no tools")
+
+    llm = scripted(call("submit", **inflated), call("submit", **inflated))
+    deps = Deps(db, Models(llm, llm, llm), None, no_tools)
+    update = asyncio.run(brief_synthesizer(run, deps))
+    # The model still reads the note; only its numbers stop counting as known.
+    assert "45%" in str(llm.__dict__["seen"][0][1].content)
+    assert "brief" not in update and "['45']" in update["errors"][0]
+
+
 def test_a_brief_rejected_twice_is_not_published(db: psycopg.Connection) -> None:
     uncited = brief("Ford is 22% of Gentherm's revenue.", [])
     update, _ = synthesize(db, call("submit", **uncited), call("submit", **uncited))

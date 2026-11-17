@@ -76,6 +76,10 @@ async def brief_synthesizer(state: KOAState, deps: Deps) -> dict[str, Any]:
     if market:
         lines += ["Abnormal returns (descriptive, not a signal):", *market]
     facts = "\n".join(lines)
+    # The analyst's notes are model text, so their numbers don't count as known.
+    known = facts
+    for x in state.get("exposures", []):
+        known = known.replace(x.note, "")
     task = f"<data>\n{facts}\n</data>\nWrite the brief."
     cited = {e.chunk_id for e in quotes}
 
@@ -95,7 +99,7 @@ async def brief_synthesizer(state: KOAState, deps: Deps) -> dict[str, Any]:
         usage += run.usage
         if run.output is None:
             return {"usage": usage, "errors": [f"brief_synthesizer: {run.error}"]}
-        found = problems(run.output, cited, facts)
+        found = problems(run.output, cited, known)
         if not found:
             gaps = [
                 f"no verified evidence for {c}"
