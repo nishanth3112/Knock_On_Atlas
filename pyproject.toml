@@ -11,14 +11,15 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "bm25s>=0.3.16",
     "fastapi>=0.162.2",
-    "fastembed>=0.9.1",
     "fastmcp>=4.1.5,<5",
     "httpx>=0.28.1",
     "httpx2>=2.16.0",
+    "langchain-groq>=1.2.0",
     "langchain-ollama>=1.1.0",
     "langgraph>=1.2.19,<2",
     "langgraph-checkpoint-aws>=1.2.6,<2",
     "logfire>=5.6.0",
+    "mangum>=0.22.0",
     "numpy>=2.5.4",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.2",
@@ -33,14 +34,19 @@ knock-on-atlas = "knock_on_atlas:main"
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
 
+[tool.pytest.ini_options]
+# Only our tests: lambda-dist/ holds third-party packages with their own test files.
+testpaths = ["tests"]
+
 [tool.logfire]
 # Tests and scripts that never call observability.configure make no spans.
 ignore_no_config = true
 
 [tool.uv]
 python-preference = "only-managed"
-# ingest (polars) is for local scripts and CI; Lambda packaging excludes it.
-default-groups = ["dev", "ingest"]
+# ingest (polars) and embed (fastembed) are for local scripts and CI; Lambda
+# packaging excludes both (the Lambdas search with BM25 alone).
+default-groups = ["dev", "ingest", "embed"]
 
 [dependency-groups]
 dev = [
@@ -52,6 +58,9 @@ dev = [
 ]
 ingest = [
     "polars>=2.1.0",
+]
+embed = [
+    "fastembed>=0.9.1",
 ]
 
 [tool.ruff.lint]

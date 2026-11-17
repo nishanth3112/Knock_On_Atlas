@@ -60,6 +60,17 @@ def test_hybrid_search_is_scoped_dated_and_cited(
     assert top.source_date == date(2026, 3, 3)
 
 
+def test_without_an_embedder_search_ranks_with_bm25_alone(
+    corpus: psycopg.Connection,
+) -> None:
+    # The Lambdas search this way: no model fits in their bundle.
+    hits = hybrid_search(
+        corpus, None, "Walmart share of net sales", [BG], date(2026, 6, 30)
+    )
+    assert hits[0].accession == "bg-1" and hits[0].ranks == {"bm25": 1}
+    assert {h.accession for h in hits} <= {"bg-1", "bg-2"}
+
+
 def test_later_filings_appear_once_as_of_allows(
     corpus: psycopg.Connection, fake_embedder: Embedder
 ) -> None:

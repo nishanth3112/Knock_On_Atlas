@@ -53,26 +53,29 @@ def dense_search(
 
 def rankings(
     conn: psycopg.Connection,
-    embedder: Embedder,
+    embedder: Embedder | None,
     query: str,
     ciks: list[str],
     as_of: date,
     depth: int = CANDIDATES,
 ) -> dict[str, list[int]]:
-    """Chunk ids per retriever, best first, for these companies filed by as_of."""
+    """Chunk ids per retriever, best first, for these companies filed by as_of.
+
+    Without an embedder (the Lambdas, which can't fit the model) only BM25 ranks.
+    """
     if not ciks:
         raise ValueError(
             "search needs at least one CIK; unscoped search is not allowed"
         )
-    return {
-        "bm25": [cid for cid, _ in bm25_search(conn, query, ciks, as_of, depth)],
-        "dense": dense_search(conn, embedder.query(query), ciks, as_of, depth),
-    }
+    ranked = {"bm25": [cid for cid, _ in bm25_search(conn, query, ciks, as_of, depth)]}
+    if embedder is not None:
+        ranked["dense"] = dense_search(conn, embedder.query(query), ciks, as_of, depth)
+    return ranked
 
 
 def hybrid_search(
     conn: psycopg.Connection,
-    embedder: Embedder,
+    embedder: Embedder | None,
     query: str,
     ciks: list[str],
     as_of: date,
