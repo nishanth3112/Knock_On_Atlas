@@ -3,7 +3,9 @@ locals {
     api    = { memory = 512, timeout = 30 }
     worker = { memory = 1024, timeout = 300 } # spec wall clock 240 s, plus slack
     mcp    = { memory = 1024, timeout = 60 }
-    poller = { memory = 512, timeout = 300 }
+    # Lambda's maximum: refresh-studies fetches 8 tickers a minute and writes studies
+    # only at the end, so a run cut off at 300 s (~40 tickers) would never finish.
+    poller = { memory = 512, timeout = 900 }
   }
   demo_param = "${var.ssm_prefix}/DEMO_LIVE_UNTIL"
   logfire    = var.with_logfire ? ["LOGFIRE_TOKEN"] : []

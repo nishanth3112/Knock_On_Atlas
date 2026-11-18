@@ -1,10 +1,12 @@
 # Checkpoints for analysis runs (workflow/checkpoints.py). Provisioned, not on-demand:
-# always-free covers 25 RCU / 25 WCU; a run writes ~17 KB checkpoints in bursts.
+# always-free covers 25 RCU / 25 WCU, all of it here (the only table). A ~17 KB
+# checkpoint costs ~17 WCU and a run writes ~108 of them, so two runs at once lean on
+# the 300 s of banked capacity: 7,500 units at 25 WCU, 3,000 at 10.
 resource "aws_dynamodb_table" "checkpoints" {
   name           = "knock-on-atlas-checkpoints" # workflow/checkpoints.py:TABLE
   billing_mode   = "PROVISIONED"
-  read_capacity  = 10
-  write_capacity = 10
+  read_capacity  = 25
+  write_capacity = 25
   hash_key       = "PK"
   range_key      = "SK"
 
