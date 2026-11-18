@@ -22,11 +22,7 @@ find "$out/bundle" -type d \( -name __pycache__ -o -name tests -o -name test \) 
 (cd "$out/bundle" && zip -qr9 ../lambda.zip .)
 
 limit=262144000  # Lambda's unzipped limit, in bytes
-unzipped=$(find "$out/bundle" -type f -print0 | xargs -0 stat -f%z 2>/dev/null \
-  | awk '{s+=$1} END {print s}' || true)
-if [ -z "$unzipped" ]; then  # GNU stat (the CI runner)
-  unzipped=$(find "$out/bundle" -type f -print0 | xargs -0 stat -c%s | awk '{s+=$1} END {print s}')
-fi
+unzipped=$(python3 -c 'import os, sys; print(sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(sys.argv[1]) for f in fs))' "$out/bundle")
 zipped=$(wc -c <"$out/lambda.zip" | tr -d ' ')
 echo "lambda.zip: ${zipped} bytes zipped, ${unzipped} bytes unzipped (limit ${limit})"
 if [ "$unzipped" -gt "$limit" ]; then
