@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     demo_live_until: datetime | None = None
 
     database_url: SecretStr = SecretStr("postgresql://koa:koa@localhost:5432/koa")
+    # The edgar-intel function URL the worker calls on AWS; locally it runs in-process.
+    mcp_url: str | None = None
     # None in AWS, where boto3 resolves the real DynamoDB endpoint.
     dynamodb_endpoint_url: str | None = None
     # SEC rejects requests without a descriptive User-Agent, so there is no default.
@@ -59,6 +61,9 @@ class Settings(BaseSettings):
     twelvedata_api_key: SecretStr | None = None
     logfire_token: SecretStr | None = None
     jwt_secret: SecretStr | None = None
+    # Signs the worker's tokens for edgar-intel on AWS; apart from JWT_SECRET, so a
+    # leak from the worker or MCP function can't forge an API reviewer.
+    mcp_jwt_secret: SecretStr | None = None
 
 
 @lru_cache

@@ -29,3 +29,12 @@ test("a validation error gets a plain message", async () => {
   reply(422, { detail: [{ loc: ["body"], msg: "bad" }] });
   await expect(api.get("/events")).rejects.toThrow("The request was not accepted.");
 });
+
+test("a deployed build calls the API's own URL", async () => {
+  vi.stubEnv("VITE_API_URL", "https://abc.lambda-url.us-east-1.on.aws/");
+  const fetch = reply(200, { ok: true, live: false });
+  await api.get("/health");
+  const [url] = fetch.mock.calls[0] as unknown as [string];
+  expect(url).toBe("https://abc.lambda-url.us-east-1.on.aws/health");
+  vi.unstubAllEnvs();
+});

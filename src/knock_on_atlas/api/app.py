@@ -33,7 +33,8 @@ from knock_on_atlas.workflow.worker import Job
 def get_conn() -> Iterator[psycopg.Connection]:
     """One connection per request: demo traffic, and Lambda reuses nothing anyway."""
     url = get_settings().database_url.get_secret_value()
-    with psycopg.connect(url, autocommit=True) as conn:
+    # Neon's pooled endpoint can't keep prepared statements between transactions.
+    with psycopg.connect(url, autocommit=True, prepare_threshold=None) as conn:
         yield conn
 
 

@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from typing import Protocol
 
 import psycopg
-from fastembed import TextEmbedding
 
 MODEL = "BAAI/bge-small-en-v1.5"
 DIM = 384
@@ -21,6 +20,9 @@ class Embedder(Protocol):
 
 class BgeEmbedder:
     def __init__(self, cache_dir: str = MODEL_CACHE) -> None:
+        # Imported here: the Lambdas search with BM25 alone and don't ship fastembed.
+        from fastembed import TextEmbedding
+
         self._model = TextEmbedding(MODEL, cache_dir=cache_dir)
 
     def passages(self, texts: list[str]) -> list[list[float]]:

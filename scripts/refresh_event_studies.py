@@ -1,73 +1,43 @@
 """Refetch closes and recompute every event study that is not complete yet.
 
-Runs daily, after scripts/backfill_prices.py. Closes are refetched for SPY and each
-ticker with a pending study (one Twelve Data call each), then every event in
-evals/cases/events.csv is studied for its filer and suppliers; complete studies stay
-as they are. Writes evals/event_study/<UTC timestamp>.json.
+Runs daily on AWS (koa-poller's refresh-studies job); this runs the same job
+locally. Closes are refetched for SPY and each ticker with a pending study (one
+Twelve Data call each), then every 8-K in the events table is studied for its filer
+and suppliers; complete studies stay as they are. Writes
+evals/event_study/<UTC timestamp>.json.
 
 Usage: uv run python scripts/refresh_event_studies.py
 """
 
-import csv
 import json
 import logging
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psycopg
 
 from knock_on_atlas.config import get_settings
-from knock_on_atlas.market.bars import upsert_closes
-from knock_on_atlas.market.calendar import EASTERN, sessions
-from knock_on_atlas.market.event_study import refresh_tickers, study_event
-from knock_on_atlas.market.prices import TwelveDataClient, TwelveDataError
+from knock_on_atlas.ingest import refresh_studies
+from knock_on_atlas.market.calendar import sessions
+from knock_on_atlas.market.prices import TwelveDataClient
 
-EVENTS = Path("evals/cases/events.csv")
 SUMMARY_DIR = Path("evals/event_study")
 
 logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger("refresh_event_studies")
 settings = get_settings()
 if settings.twelvedata_api_key is None:
     raise SystemExit("TWELVEDATA_API_KEY is not set")
 client = TwelveDataClient(settings.twelvedata_api_key.get_secret_value())
-with EVENTS.open(newline="") as f:
-    events = list(csv.DictReader(f))
-# Through yesterday in New York: a bar for today may still be moving.
-last_day = datetime.now(EASTERN).date() - timedelta(days=1)
-credits = 0
-failed: dict[str, str] = {}
 
 with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as conn:
-    # The whole stored range, not just new days, for the same one credit: Twelve
-    # Data re-adjusts past closes after a split, so appended bars could mix bases.
-    start = sessions(conn)[0]
-    for ticker in refresh_tickers(conn):
-        credits += 1
-        try:
-            bars = client.daily_closes(ticker, start, last_day)
-        except TwelveDataError as error:
-            logger.warning("%s", error)
-            failed[ticker] = str(error)
-            continue
-        upsert_closes(conn, ticker, bars)
-
+    done = refresh_studies(conn, client)
     days = sessions(conn)
-    written = sum(
-        study_event(
-            conn,
-            event["accession"],
-            event["hub_cik"],
-            datetime.fromisoformat(event["accepted_at"]),
-            days,
-        )
-        for event in events
-    )
+    events = [row[0] for row in conn.execute("SELECT accession FROM events")]
     rows = conn.execute(
         "SELECT accession, cik, ticker, depth, day0, status FROM event_studies"
         " WHERE accession = ANY(%s)",
-        ([event["accession"] for event in events],),
+        (events,),
     ).fetchall()
 
 hub_status = {
@@ -92,9 +62,9 @@ summary = {
     "insufficient_history_tickers": sorted(
         {ticker for _, _, ticker, _, _, s in rows if s == "insufficient_history"}
     ),
-    "written_this_run": written,
-    "credits_used": credits,
-    "fetch_failures": failed,
+    "written_this_run": done.written,
+    "credits_used": done.credits,
+    "fetch_failures": done.failed,
 }
 SUMMARY_DIR.mkdir(parents=True, exist_ok=True)
 out = SUMMARY_DIR / f"{built_at}.json"

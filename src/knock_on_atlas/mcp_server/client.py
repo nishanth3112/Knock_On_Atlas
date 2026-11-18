@@ -81,3 +81,12 @@ def mcp_caller(
             return result
 
     return call
+
+
+@asynccontextmanager
+async def remote_client(
+    url: str, token: str
+) -> AsyncGenerator[Client[StreamableHttpTransport]]:
+    """The deployed edgar-intel server, with the worker's scoped service token."""
+    async with Client(StreamableHttpTransport(url, auth=token)) as client:
+        yield client

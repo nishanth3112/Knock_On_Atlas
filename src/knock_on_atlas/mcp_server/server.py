@@ -88,7 +88,10 @@ class ConcentrationFact(BaseModel):
 
 
 def build_server(
-    conn: psycopg.Connection, sec: SecClient, embedder: Embedder, jwt_secret: str
+    conn: psycopg.Connection,
+    sec: SecClient,
+    embedder: Embedder | None,
+    jwt_secret: str,
 ) -> FastMCP:
     mcp = FastMCP(
         "edgar-intel",
